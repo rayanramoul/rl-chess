@@ -1,0 +1,43 @@
+body
+{
+	margin:0px;
+	background-color: #020c1c;
+}
+#game
+{
+	min-height: 300px;
+	background-color: black;
+}
+#soc-link
+{
+	height:30px;
+	width: 30px;
+}
+#content-rules
+{
+	width: 95%;
+	background-color: white;
+	margin: 20px;
+}
+
+#content-dev
+{
+	width: 95%;
+	background-color: white;
+	margin: 20px;
+}
+.col-centered{
+    float: none;
+    margin: 0 auto;
+}
+
+.team-block { }
+.team-img { margin-bottom: 20px; position: relative; }
+.team-img img { width: 100%; }
+.team-img img.border { border-color: #fff !important; }
+.social-media { position: absolute; bottom: 36px; opacity: 0; }
+.social-icon-box { margin-bottom: 5px; background-color: #193e6b; width: 46px; height: 46px; color: #ffffff; font-size: 16px; padding: 15px 19px 26px 16px; display: inline-block; line-height: 1.2; }
+.team-img:hover .social-media { opacity: 1; transition: 2s ease; }
+.team-block.active .social-media { opacity: 1; transition: 2s ease; }
+.team-content{color:white;}
+.img-fluid{height: 300px;width: 100px;}
