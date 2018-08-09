@@ -8,18 +8,21 @@ constructor(props){
 
 	render(){
 const d=this.print();
-		return (<p>This is {d}</p>);
+		return (<p>{d}</p>);
 }
 
 
 print(){	
-	var x='',i; 
+	var x='',i;
+	var doum=this.state.starterWhite;
 	for(i=0;i<8;i++){
 	if((i%2)===0){
-		x=x+' | White | ';
+		let pr=(doum=='true')?' | White | ':' | Black | ';
+		x=x+pr;
 		}	
 	else{
-		x=x+' | Black | ';
+		let pr=(doum=='true')?' | Black | '	:' | White | ';
+		x=x+pr;
 		}
 	}
 	return x;
