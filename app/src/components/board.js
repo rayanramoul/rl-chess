@@ -1,20 +1,24 @@
 import React from 'react';
 import BoardLine from './boardline.js';
-
+import '../index.css';
 export default class Board extends React.Component{
+	constructor(props){
+		super(props);
+		this.state={squares:this.props.squares,};
+	}
 render()
 {
 	return (
 
 <div className='chess-board'>
-<div className='board-line'>8 - <BoardLine starterWhite='true'/></div>
-<div className='board-line'>7 - <BoardLine starterWhite='false'/></div>
-<div className='board-line'>6 - <BoardLine starterWhite='true'/></div>
-<div className='board-line'>5 - <BoardLine starterWhite='false'/></div>
-<div className='board-line'>4 - <BoardLine starterWhite='true'/></div>
-<div className='board-line'>3 - <BoardLine starterWhite='false'/></div>
-<div className='board-line'>2 - <BoardLine starterWhite='true'/></div>
-<div className='board-line'>1 - <BoardLine starterWhite='false'/></div>
+<BoardLine className='board-line' starterWhite='true' squares={this.state.squares[0]}/>
+<BoardLine className='board-line' starterWhite='false' squares={this.state.squares[1]}/>
+<BoardLine className='board-line' starterWhite='true' squares={this.state.squares[2]}/>
+<BoardLine className='board-line' starterWhite='false' squares={this.state.squares[3]}/>
+<BoardLine className='board-line' starterWhite='true' squares={this.state.squares[4]}/>
+<BoardLine className='board-line' starterWhite='false' squares={this.state.squares[5]}/>
+<BoardLine className='board-line' starterWhite='true' squares={this.state.squares[6]}/>
+<BoardLine className='board-line' starterWhite='false' squares={this.state.squares[7]}/>
 </div>
 		);
 }

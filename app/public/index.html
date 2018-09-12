@@ -1,14 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>CHESS</title>
-  </head>
-  <body>
-    <noscript>
-      You need to enable JavaScript to run this app.
-    </noscript>
-    <div id="game"></div>
-  </body>
+<html>
+
+<head>
+ <script src="app/app.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/1.11.8/semantic.min.css"/>
+  <link rel="icon" href="resources/icons/black_knight.png">
+</head>
+<body>
+
+  
+  <!--===============================================-->
+  <!--==================== HEADER ===================-->
+  <!--===============================================-->
+<div class="ui secondary pointing menu">
+  <a href="#" class="item active">
+    <img src="resources/icons/black_knight.png" style="height: 17px;width:17px;">
+  </a>
+  <a href="rules.html" class="item">
+    Rules
+  </a>
+
+</div>
+
+  <!--===============================================-->
+  <!--==================== GAME ===================-->
+  <!--===============================================-->
+<div class="ui main container">
+<div class="ui segment">
+  <div id="game" center aligned></div>
+</div> 
+
+
+
+  <!--===============================================-->
+  <!--==================== FOOTER ===================-->
+  <!--===============================================-->
+
+<div class="ui inverted vertical footer segment center aligned">
+    <div class="ui container">
+      <form action="https://github.com/raysr/openChess">
+        <button class="ui github button">
+
+  <i class="github icon"></i>
+  Project's Github
+</button>
+</form>
+    </div>
+
+</div>
+
+
+</div>
+
+</body>
 </html>
