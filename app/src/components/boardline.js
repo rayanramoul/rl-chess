@@ -4,6 +4,7 @@ import Square from './square.js'
 export default class BoardLine extends React.Component{
 constructor(props){
 	super(props);
+	this.props=props;
 	this.state={squares:this.props.squares,starterWhite:this.props.starterWhite,};
 }
 
@@ -15,10 +16,10 @@ render(){
         	imgs[i]='resources/icons/'+this.state.squares[i]+'.png';
         }
         return (
-            <div class='container'>
+            <div className='container'>
                 {names.map((name, index)=>{
-                	return <Square color={name} piece={this.state.squares[index]}/>;
-                  })}
+                	return <Square color={name} piece={this.state.squares[index]} number={index} onClick={()=>{this.props.onClick(index)}}/>;
+                  },this)}
             </div>
         )
     }
