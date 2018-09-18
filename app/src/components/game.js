@@ -68,7 +68,13 @@ changed(i, j)
 
 movePossible(pionOrigin,pionDestination,iOrigin,jOrigin,iDestination,jDestination)
 {
-
+	console.log('turnBlank : '+this.state.turnBlank);
+	console.log('pionOrigin : '+pionOrigin);
+	console.log('pionDestination : '+pionDestination);
+	console.log('iOrigin : '+iOrigin);
+	console.log('jOrigin : '+jOrigin);
+	console.log('iDestination : '+iDestination);
+	console.log('jDestination : '+jDestination);
 	// DIRECTION OF MOVE FOR PAWNS
 	let negate=this.turnBlank?1:-1;
 	// PLAY PER TURN
@@ -83,13 +89,19 @@ movePossible(pionOrigin,pionDestination,iOrigin,jOrigin,iDestination,jDestinatio
 	// PAWNS MOVES
 	if(pionOrigin.endsWith('pawn'))
 	{
-		if((iOrigin===1) && this.turnBlank){
+		if(iOrigin-iDestination===1 && pionOrigin.startsWith('white') && pionDestination.startsWith('black') && (jOrigin-jDestination===1 || jOrigin-jDestination===-1)){return true;}
+		else if(iOrigin-iDestination===-1 && pionOrigin.startsWith('black') && pionDestination.startsWith('white') && (jOrigin-jDestination===1 || jOrigin-jDestination===-1)){return true;}
+		else if((iOrigin===6) && pionOrigin.startsWith('white')){
+			if(jOrigin===jDestination && iOrigin-iDestination<3){return true;}
+			else {return false;}
+		}
+		else if(iOrigin===1 && pionOrigin.startsWith('black')){
 			if(jOrigin===jDestination && iOrigin-iDestination>-3){return true;}
 			else {return false;}
 		}
-		else if(iOrigin===6 && !this.turnBlank){
-			if(jOrigin===jDestination && iOrigin-iDestination<3){return true;}
-			else {return false;}
+		else if(jOrigin===jDestination && iOrigin-iDestination<2 && iOrigin-iDestination>-2)
+		{
+			return true;
 		}
 		else{
 			return false;
@@ -138,7 +150,8 @@ movePossible(pionOrigin,pionDestination,iOrigin,jOrigin,iDestination,jDestinatio
 
 if(pionOrigin.endsWith('knight'))
 {
-
+	if(iOrigin-iDestination!==jOrigin-jDestination && (iOrigin-iDestination<3 && iOrigin-iDestination!==0 && iOrigin-iDestination>-3 && iOrigin-iDestination!==-1*(jOrigin-jDestination)) && (jOrigin-jDestination<3 && jOrigin-jDestination!==0 && jOrigin-jDestination>-3) && iOrigin!==iDestination && jOrigin!==jDestination) { return true;}
+	else {return false;}
 }
 
 
