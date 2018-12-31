@@ -96,6 +96,20 @@ class board:
 
             return False
 
+    def allmoves(self):
+        l=[]
+        for i in self.pieces:
+            for j in i.moves(self):
+                try:
+                    if (j.baseside!=self.getpiece(j.newx, j.newy).side) and j.newx>-1 and j.newx<8 and j.newy>-1 and j.newy<8 and j.baseside==self.turn and not(self.blocked(j.basex, j.basey, j.newx, j.newy)):
+                        l.append(j)
+                        j.describe()
+                except:
+                    if j.newx>-1 and j.newx<8 and j.newy>-1 and j.newy<8 and j.baseside==self.turn and not(self.blocked(j.basex, j.basey, j.newx, j.newy)):
+                        l.append(j)
+                        j.describe()
+        return l
+                    
     def move(self,basex, basey, newx, newy):
         if self.getpiece(basex, basey)==None:
             print("You're trying to move nothing !")

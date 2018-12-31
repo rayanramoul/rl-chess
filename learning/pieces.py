@@ -1,4 +1,4 @@
-import move
+from move import *
 
 class piece:
     def __init__(self, x, y, side):
@@ -40,18 +40,26 @@ class pawn(piece):
             print("Disabled movement")
             return False
 
-    def moves(self):
+    def moves(self, board):
         l=[]
         if self.side=="white":
-            l.append(move(self.x-1))
+            l.append(move(self.x, self.y, self.x-1, self.y, self.name, self.side))
             if not self.moved:
-                l.append(move(self.x-2))
+                l.append(move(self.x, self.y,self.x-2, self.y, self.name, self.side))
         else:
-            l.append(move(self.x+1))
+            l.append(move(self.x, self.y, self.x+1, self.y, self.name, self.side))
             if not self.moved:
-                l.append(move(self.x+2))
+                l.append(move(self.x, self.y, self.x+2, self.y, self.name, self.side))
                 
-    
+        if board.getpiece(self.x-1,self.y-1)!=None and self.side=="white" and board.getpiece(self.x-1,self.y-1).side=="black":
+            l.append(move(self.x, self.y, self.x-1, self.y-1, self.name, self.side))
+        if board.getpiece(self.x-1,self.y+1)!=None and self.side=="white" and board.getpiece(self.x-1,self.y+1).side=="black":
+            l.append(move(self.x, self.y, self.x-1, self.y+1, self.name, self.side))
+        if board.getpiece(self.x+1,self.y-1)!=None and self.side=="black" and board.getpiece(self.x+1,self.y-1).side=="white":
+            l.append(move(self.x, self.y, self.x+1, self.y-1, self.name, self.side))
+        if board.getpiece(self.x+1,self.y+1)!=None and self.side=="black" and board.getpiece(self.x+1,self.y+1).side=="white":
+            l.append(move(self.x, self.y, self.x+1, self.y+1, self.name, self.side))    
+        return l
 class knight(piece):
     def __init__(self, x, y, side):
         super(knight, self).__init__(x, y, side)
@@ -68,6 +76,18 @@ class knight(piece):
         else:
             print("Disabled movement")
             return False
+    
+    def moves(self, board):
+        l=[]
+        l.append(move(self.x, self.y, self.x+2, self.y+1, self.name, self.side))
+        l.append(move(self.x, self.y, self.x+2, self.y-1, self.name, self.side))
+        l.append(move(self.x, self.y, self.x-2, self.y+1, self.name, self.side))
+        l.append(move(self.x, self.y, self.x-2, self.y-1, self.name, self.side))
+        l.append(move(self.x, self.y, self.x+1, self.y+2, self.name, self.side))
+        l.append(move(self.x, self.y, self.x+1, self.y-2, self.name, self.side))
+        l.append(move(self.x, self.y, self.x-1, self.y+2, self.name, self.side))
+        l.append(move(self.x, self.y, self.x-1, self.y-2, self.name, self.side))
+        return l
 
 
 class bishop(piece):
@@ -87,6 +107,17 @@ class bishop(piece):
             print("Disabled movement")
             return False
 
+    def moves(self, board):
+        l=[]
+        i=self.x-8
+        j=self.y-8
+        while i<self.x+8 and j<self.y+8:
+            l.append(move(self.x, self.y, i, j, self.name, self.side))
+            i=i+1
+            j=j+1
+
+        return l
+
 class rook(piece):
     def __init__(self, x, y, side):
         super(rook, self).__init__(x, y, side)
@@ -103,6 +134,13 @@ class rook(piece):
         else:
             print("Disabled movement")
             return False
+    def moves(self, board):
+        l=[]
+        for i in range(self.x-8, self.x+8):
+            l.append(move(self.x, self.y, i, self.y, self.name, self.side))
+        for j in range(self.y-8, self.y+8):
+            l.append(move(self.x, self.y, self.x, j, self.name, self.side))
+        return l
 
 class queen(piece):
     def __init__(self, x, y, side):
@@ -120,7 +158,19 @@ class queen(piece):
         else:
             print("Disabled movement")
             return False
-
+    def moves(self, board):
+        l=[]
+        i=self.x-8
+        j=self.y-8
+        while i<self.x+8 and j<self.y+8:
+            l.append(move(self.x, self.y, i, j, self.name, self.side))
+            i=i+1
+            j=j+1
+        for i in range(self.x-8, self.x+8):
+            l.append(move(self.x, self.y, i, self.y, self.name, self.side))
+        for j in range(self.y-8, self.y+8):
+            l.append(move(self.x, self.y, self.x, j, self.name, self.side))
+        return l
 class king(piece):
     def __init__(self, x, y, side):
         super(king, self).__init__(x, y, side)
@@ -137,3 +187,15 @@ class king(piece):
         else:
             print("Disabled movement")
             return False
+    
+    def moves(self, board):
+        l=[]
+        l.append(move(self.x, self.y, self.x+1, self.y, self.name, self.side))
+        l.append(move(self.x, self.y, self.x-1, self.y, self.name, self.side))
+        l.append(move(self.x, self.y, self.x+1, self.y+1, self.name, self.side))
+        l.append(move(self.x, self.y, self.x-1, self.y+1, self.name, self.side))
+        l.append(move(self.x, self.y, self.x+1, self.y-1, self.name, self.side))
+        l.append(move(self.x, self.y, self.x-1, self.y-1, self.name, self.side))
+        l.append(move(self.x, self.y, self.x, self.y+1, self.name, self.side))
+        l.append(move(self.x, self.y, self.x, self.y-1, self.name, self.side))
+        return l
