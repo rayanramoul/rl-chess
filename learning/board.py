@@ -88,6 +88,7 @@ class board:
             return False
         else:
             if basex==newx:
+                print("OUI 1")
                 if basey>newy:
                     k=-1
                 else:
@@ -95,25 +96,29 @@ class board:
                 for i in range(basey+k,newy):
                     if self.getpiece(basex,i)!=None:
                         return True
-                '''
+                
                 for i in range(newy+k,basey):
                     if self.getpiece(basex,i)!=None:
                         return True
-                '''
+                
             elif basey==newy:
+                print("OUI 2 basex="+str(basex)+" newx="+str(newx))
                 if basex>newx:
                     k=-1
                 else:
                     k=1
                 for i in range(basex+k,newx):
+                    print("i : "+str(i))
                     if self.getpiece(i,basey)!=None:
                         return True
-                '''                
+                             
                 for i in range(newx+k,basex):
+                    print("i : "+str(i))
                     if self.getpiece(i,basey)!=None:
                         return True
-                '''
+                
             else:
+                print("OUI 3")
                 if newx-basex>0:
                     incx=1
                 else:
@@ -156,6 +161,7 @@ class board:
         if self.getpiece(basex, basey).side!=self.turn:
             print("Move your own pieces !")
             return False
+        print("BLOCKED MOVE ??????")
         if self.blocked(basex, basey, newx, newy):
             print("There is another piece on the road ! ")
             return False
