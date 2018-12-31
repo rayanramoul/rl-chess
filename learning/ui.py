@@ -63,9 +63,14 @@ class Example(QWidget):
         self.possiblemoves=QListWidget(self)
         self.possiblemoves.move(830,100)
         self.possiblemoves.resize(180, 500)
-
+        self.lastbasex=0
+        self.lastbasey=0
+        self.lastnewx=0
+        self.lastnewy=0
         self.possiblemoves.clear()
         self.possmov=self.board.moves
+        self.possiblemoves.itemClicked.connect(self.highlight)
+        self.possiblemoves.itemSelectionChanged.connect(self.highlight)
         for i in self.possmov:
             item = QListWidgetItem(i.string())
             self.possiblemoves.addItem(item)
@@ -74,7 +79,44 @@ class Example(QWidget):
         self.setGeometry(200, 300, 1024, 800)
         self.setWindowTitle('openChess')    
         self.show()
+
+    def highlight(self, item=None):
+        ind=self.possmov[self.possiblemoves.currentRow()]
+        basex=ind.basex
+        basey=ind.basey
+        newx=ind.newx
+        newy=ind.newy
+        if (self.lastbasey%2==0 and self.lastbasex%2==0) or (self.lastbasey%2==1 and self.lastbasex%2==1):
+            self.buttons[self.lastbasey][self.lastbasex].setStyleSheet("background-color: #bcaaa4")
+        else:
+            self.buttons[self.lastbasey][self.lastbasex].setStyleSheet("")
+        
+        if (self.lastnewy%2==0 and self.lastnewx%2==0) or (self.lastnewy%2==1 and self.lastnewx%2==1):
+            self.buttons[self.lastnewy][self.lastnewx].setStyleSheet("background-color: #bcaaa4")
+        else:
+            self.buttons[self.lastnewy][self.lastnewx].setStyleSheet("")
+        self.lastbasex=basex
+        self.lastbasey=basey
+        self.lastnewx=newx
+        self.lastnewy=newy
+        self.buttons[basey][basex].setStyleSheet("background-color: #3f51b5")
+        self.buttons[newy][newx].setStyleSheet("background-color: #ff8a80")
+        
     def redraw(self,beginx,beginy,endx,endy):
+        if (self.lastbasey%2==0 and self.lastbasex%2==0) or (self.lastbasey%2==1 and self.lastbasex%2==1):
+            self.buttons[self.lastbasey][self.lastbasex].setStyleSheet("background-color: #bcaaa4")
+        else:
+            self.buttons[self.lastbasey][self.lastbasex].setStyleSheet("")
+        
+        if (self.lastnewy%2==0 and self.lastnewx%2==0) or (self.lastnewy%2==1 and self.lastnewx%2==1):
+            self.buttons[self.lastnewy][self.lastnewx].setStyleSheet("background-color: #bcaaa4")
+        else:
+            self.buttons[self.lastnewy][self.lastnewx].setStyleSheet("")
+        self.lastbasex=-1
+        self.lastbasey=-1
+        self.lastnewx=-1
+        self.lastnewy=-1
+
         self.possiblemoves.clear()
         self.possmov=self.board.moves
         for i in self.possmov:
