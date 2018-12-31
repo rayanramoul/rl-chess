@@ -63,12 +63,19 @@ class board:
         else:
             if basex==newx:
                 for i in range(basey,newy):
-                    if self.getpiece(basex+1,i)!=None:
+                    if self.getpiece(basex,i+1)!=None:
+                        return True
+                for i in range(newy+1,basey):
+                    if self.getpiece(basex,i)!=None:
                         return True
             elif basey==newy:
                 for i in range(basex,newx):
                     if self.getpiece(i+1,basey)!=None:
                         return True
+                for i in range(newx+1,basex):
+                    if self.getpiece(i,basey)!=None:
+                        return True
+
             else:
                 if newx-basex>0:
                     incx=1

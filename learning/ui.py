@@ -62,7 +62,6 @@ class Example(QWidget):
         self.setWindowTitle('openChess')    
         self.show()
     def redraw(self,beginx,beginy,endx,endy):
-        print("Redraw")
         if self.board.getpiece(beginx,beginy)!=None:
             print(1)
             k="resources/icons/"+self.board.getpiece(beginx,beginy).id+".png"
@@ -76,10 +75,8 @@ class Example(QWidget):
                 self.buttons[beginy][beginx].setStyleSheet("background-color: #bcaaa4")
             else:
                 self.buttons[beginy][beginx].setStyleSheet("")
-            print("2")
             self.buttons[beginy][beginx].update()
         else:
-            print("3")
             self.buttons[beginy][beginx].setText("")
             self.buttons[beginy][beginx].setIcon(QIcon())
             self.buttons[beginy][beginx].setIconSize(QSize(100,100))
@@ -89,10 +86,9 @@ class Example(QWidget):
                 self.buttons[beginy][beginx].setStyleSheet("background-color: #bcaaa4")
             else:
                 self.buttons[beginy][beginx].setStyleSheet("")
-            print("4")
+            
             self.buttons[beginy][beginx].update()
         if self.board.getpiece(endx,endy)!=None:
-            print("5")
             k="resources/icons/"+self.board.getpiece(endx,endy).id+".png"
             pixmap = QPixmap(k)
             self.buttons[endy][endx].setText("")
@@ -104,10 +100,9 @@ class Example(QWidget):
                 self.buttons[endy][endx].setStyleSheet("background-color: #bcaaa4")
             else:
                 self.buttons[endy][endx].setStyleSheet("")
-            print("6")
+
             self.buttons[endy][endx].update()
         else:
-            print("7")
             self.buttons[endy][endx].setText("")
             self.buttons[endy][endx].setIcon(QIcon())
             self.buttons[endy][endx].setIconSize(QSize(100,100))
@@ -117,7 +112,7 @@ class Example(QWidget):
                 self.buttons[endy][endx].setStyleSheet("background-color: #bcaaa4")
             else:
                 self.buttons[endy][endx].setStyleSheet("")
-            print("8")
+
             self.buttons[endy][endx].update()
         self.turn.setText(self.board.turn+"'s turn")
         self.update()
@@ -127,7 +122,6 @@ class Example(QWidget):
         print("indx : "+str(indx))
         print("indy : "+str(indy))
         if self.clickedx==-1 and self.clickedy==-1:
-            print("gr1")
             self.clickedx=indx
             self.clickedy=indy
             self.buttons[self.clickedy][self.clickedx].setStyleSheet("background-color: #00bfa5")
@@ -135,22 +129,19 @@ class Example(QWidget):
             self.buttons[self.clickedy][self.clickedx].style().unpolish(self.buttons[self.clickedy][self.clickedx])
             self.buttons[self.clickedy][self.clickedx].style().polish(self.buttons[self.clickedy][self.clickedx])
             self.buttons[self.clickedy][self.clickedx].update()
-            print("fin gr1")
+
         elif self.board.move(self.clickedx,self.clickedy,indx,indy):
-            print("gr2")
             self.redraw(self.clickedx, self.clickedy, indx, indy)
             self.clickedx=-1
             self.clickedy=-1
-            print("fin gr2")
         else:
-            print("gr3")
             if (self.clickedy%2==0 and self.clickedx%2==0) or (self.clickedy%2==1 and self.clickedx%2==1):
                 self.buttons[self.clickedy][self.clickedx].setStyleSheet("background-color: #bcaaa4")
             else:
                 self.buttons[self.clickedy][self.clickedx].setStyleSheet("")
+            self.buttons[self.clickedy][self.clickedx].setCheckable(False)
             self.clickedx=-1
             self.clickedy=-1
-            print("fin gr3")
         self.app.processEvents()
         self.update()
         

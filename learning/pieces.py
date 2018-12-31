@@ -18,7 +18,6 @@ class pawn(piece):
         self.id="W-P" if side=="white" else "B-P"
 
     def move(self, x, y, board):
-        print(" x:"+str(x)+"  self.x:"+str(self.x)+" y:"+str(y)+" self.y:"+str(self.y))
         if not self.moved and self.y==y and ((self.side=="black" and self.x-x>-3 and self.x-x<0) or (self.side=="white" and self.x-x>0 and self.x-x<3 )):
             print("Enabled movement")
             self.x=x
@@ -31,7 +30,7 @@ class pawn(piece):
             self.y=y
             self.moved=True
             return True
-        elif board.getpiece(x, y)!=None and board.getpiece(x, y).side!=self.side and not self.moved and (self.y-y==-1 or self.y==y+1) and ((self.side=="black" and self.x-x>-2 and self.x-x<0) or (self.side=="white" and self.x-x>0 and self.x-x<2)):
+        elif board.getpiece(x, y)!=None and board.getpiece(x, y).side!=self.side and (self.y-y==-1 or self.y-y==1) and ((self.side=="black" and self.x-x>-2 and self.x-x<0) or (self.side=="white" and self.x-x>0 and self.x-x<2)):
             print("Enabled movement (eating)")
             self.x=x
             self.y=y
@@ -78,7 +77,7 @@ class bishop(piece):
         self.id="W-B" if side=="white" else "B-B"
 
     def move(self, x, y, board):
-        if self.x-x==self.y-y or self.x-x==(-1)*self.y-y:
+        if self.x-x==self.y-y or self.x-x==(-1)*(self.y-y):
             print("Enabled movement")
             self.x=x
             self.y=y
