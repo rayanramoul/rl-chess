@@ -1,7 +1,7 @@
 from pieces import *
 
 class board:
-    def __init__(self):
+    def __init__(self, board=None, move=None):
         self.board=[['O' for x in range(8)] for y in range(8)]
         self.game="on"
         self.turn="white"
@@ -29,7 +29,33 @@ class board:
         self.add(queen(7,4,"white"))
         self.add(king(0,4,"black"))
         self.add(queen(0,3,"black"))
+        self.precmoves=[]
+        self.moves=[]
+        self.allmoves()
         self.draw()
+    def check(self):
+        l=[]
+        r=False
+        for i in self.pieces:
+            for j in i.moves(self):
+                try:
+                    if (j.baseside!=self.getpiece(j.newx, j.newy).side) and j.newx>-1 and j.newx<8 and j.newy>-1 and j.newy<8 and j.baseside!=self.turn and not(self.blocked(j.basex, j.basey, j.newx, j.newy)):
+                        l.append(j)
+                        if self.getpiece(j.newx, j.newy)!=None and (self.getpiece(j.newx, j.newy).side==self.turn and self.getpiece(j.newx, j.newy).name=="king"):
+                            r=True
+                except:
+                    if j.newx>-1 and j.newx<8 and j.newy>-1 and j.newy<8 and j.baseside!=self.turn and not(self.blocked(j.basex, j.basey, j.newx, j.newy)):
+                        l.append(j)
+                        if self.getpiece(j.newx, j.newy)!=None and (self.getpiece(j.newx, j.newy).side==self.turn and self.getpiece(j.newx, j.newy).name=="king"):
+                            r=True
+        if r:
+            print("CHECKMATE !!!!!")
+
+
+
+        
+
+
 
     def print(self):
         print('\n\n'.join(['\t'.join(['{:4}'.format(item) for item in row]) for row in self.board]))
@@ -62,20 +88,31 @@ class board:
             return False
         else:
             if basex==newx:
-                for i in range(basey,newy):
-                    if self.getpiece(basex,i+1)!=None:
-                        return True
-                for i in range(newy+1,basey):
+                if basey>newy:
+                    k=-1
+                else:
+                    k=1
+                for i in range(basey+k,newy):
                     if self.getpiece(basex,i)!=None:
                         return True
-            elif basey==newy:
-                for i in range(basex,newx):
-                    if self.getpiece(i+1,basey)!=None:
+                '''
+                for i in range(newy+k,basey):
+                    if self.getpiece(basex,i)!=None:
                         return True
-                for i in range(newx+1,basex):
+                '''
+            elif basey==newy:
+                if basex>newx:
+                    k=-1
+                else:
+                    k=1
+                for i in range(basex+k,newx):
                     if self.getpiece(i,basey)!=None:
                         return True
-
+                '''                
+                for i in range(newx+k,basex):
+                    if self.getpiece(i,basey)!=None:
+                        return True
+                '''
             else:
                 if newx-basex>0:
                     incx=1
@@ -98,16 +135,18 @@ class board:
 
     def allmoves(self):
         l=[]
+        self.precmoves=self.moves
         for i in self.pieces:
             for j in i.moves(self):
                 try:
                     if (j.baseside!=self.getpiece(j.newx, j.newy).side) and j.newx>-1 and j.newx<8 and j.newy>-1 and j.newy<8 and j.baseside==self.turn and not(self.blocked(j.basex, j.basey, j.newx, j.newy)):
                         l.append(j)
-                        j.describe()
+ #                       j.describe()
                 except:
                     if j.newx>-1 and j.newx<8 and j.newy>-1 and j.newy<8 and j.baseside==self.turn and not(self.blocked(j.basex, j.basey, j.newx, j.newy)):
                         l.append(j)
-                        j.describe()
+#                        j.describe()
+        self.moves=l
         return l
                     
     def move(self,basex, basey, newx, newy):
@@ -142,5 +181,7 @@ class board:
                             d=d+1
                         self.draw()
         print("\n\n")
-        self.print()
+        self.allmoves()
+#        self.print()
+        self.check()
         return True

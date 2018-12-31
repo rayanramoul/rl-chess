@@ -65,7 +65,8 @@ class Example(QWidget):
         self.possiblemoves.resize(180, 500)
 
         self.possiblemoves.clear()
-        for i in self.board.allmoves():
+        self.possmov=self.board.moves
+        for i in self.possmov:
             item = QListWidgetItem(i.string())
             self.possiblemoves.addItem(item)
         self.turn.setFont(QFont('SansSerif', 25))
@@ -75,7 +76,8 @@ class Example(QWidget):
         self.show()
     def redraw(self,beginx,beginy,endx,endy):
         self.possiblemoves.clear()
-        for i in self.board.allmoves():
+        self.possmov=self.board.moves
+        for i in self.possmov:
             item = QListWidgetItem(i.string())
             self.possiblemoves.addItem(item)
             self.possiblemoves.repaint()

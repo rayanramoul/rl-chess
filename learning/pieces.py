@@ -149,7 +149,7 @@ class queen(piece):
         self.id="W-Q" if side=="white" else "B-Q"
 
     def move(self, x, y, board):
-        if (self.y==y or self.x==x) or (self.x-x==self.y-y or self.x-x==(-1)*self.y-y):
+        if (self.y==y or self.x==x) or (self.x-x==self.y-y or self.x-x==(-1)*(self.y-y)):
             print("Enabled movement")
             self.x=x
             self.y=y
