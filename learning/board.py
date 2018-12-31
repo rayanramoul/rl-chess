@@ -49,7 +49,7 @@ class board:
                         if self.getpiece(j.newx, j.newy)!=None and (self.getpiece(j.newx, j.newy).side==self.turn and self.getpiece(j.newx, j.newy).name=="king"):
                             r=True
         if r:
-            print("CHECKMATE !!!!!")
+            print("CHEck !!!!!")
 
 
 
