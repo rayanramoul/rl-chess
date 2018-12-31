@@ -122,3 +122,4 @@ class board:
                         self.draw()
         print("\n\n")
         self.print()
+        return True
