@@ -6,6 +6,7 @@ class board:
         self.game="on"
         self.turn="white"
         self.pieces=[]
+        
         for i in range(8):
             self.add(pawn(6,i,"white"))
             self.add(pawn(1,i,"black"))
@@ -35,22 +36,20 @@ class board:
         self.draw()
     def check(self):
         l=[]
-        r=False
         for i in self.pieces:
             for j in i.moves(self):
                 try:
-                    if (j.baseside!=self.getpiece(j.newx, j.newy).side) and j.newx>-1 and j.newx<8 and j.newy>-1 and j.newy<8 and j.baseside!=self.turn and not(self.blocked(j.basex, j.basey, j.newx, j.newy)):
+                    if (j.baseside!=self.getpiece(j.newx, j.newy).side) and j.newx>-1 and j.newx<8 and j.newy>-1 and j.newy<8 and not(self.blocked(j.basex, j.basey, j.newx, j.newy)):
                         l.append(j)
-                        if self.getpiece(j.newx, j.newy)!=None and (self.getpiece(j.newx, j.newy).side==self.turn and self.getpiece(j.newx, j.newy).name=="king"):
-                            r=True
+                        if self.getpiece(j.newx, j.newy)!=None and (self.getpiece(j.newx, j.newy).name=="king"):
+                            return str(self.getpiece(j.newx, j.newy).side)
                 except:
-                    if j.newx>-1 and j.newx<8 and j.newy>-1 and j.newy<8 and j.baseside!=self.turn and not(self.blocked(j.basex, j.basey, j.newx, j.newy)):
+                    if j.newx>-1 and j.newx<8 and j.newy>-1 and j.newy<8 and not(self.blocked(j.basex, j.basey, j.newx, j.newy)):
                         l.append(j)
-                        if self.getpiece(j.newx, j.newy)!=None and (self.getpiece(j.newx, j.newy).side==self.turn and self.getpiece(j.newx, j.newy).name=="king"):
-                            r=True
-        if r:
-            print("CHEck !!!!!")
-
+                        if self.getpiece(j.newx, j.newy)!=None and (self.getpiece(j.newx, j.newy).name=="king"):
+                            return str(self.getpiece(j.newx, j.newy).side)
+        
+        return ""
 
 
         
@@ -84,41 +83,51 @@ class board:
             d=d+1
 
     def blocked(self, basex, basey, newx, newy):
+        print("basex :"+str(basex))
+        print("basey :"+str(basey))
+        print("newx :"+str(newx))
+        print("newy :"+str(newy))
         if self.getpiece(basex, basey).name=="knight":
             return False
         else:
             if basex==newx:
-                print("OUI 1")
-                if basey>newy:
-                    k=-1
-                else:
-                    k=1
-                for i in range(basey+k,newy):
+                print("GR1")
+                k=0
+                if basey!=7:
+                    if basey>newy:
+                        k=-1
+                    else:
+                        k=1
+                for i in range(max(0, basey+k),newy):
+                    print("1 i : "+str(i)+" k : "+str(k))
                     if self.getpiece(basex,i)!=None:
                         return True
                 
-                for i in range(newy+k,basey):
+                for i in range(max(0, newy-k),basey):
+                    print("2 i : "+str(i)+" k : "+str(k))
                     if self.getpiece(basex,i)!=None:
                         return True
                 
             elif basey==newy:
-                print("OUI 2 basex="+str(basex)+" newx="+str(newx))
-                if basex>newx:
-                    k=-1
-                else:
-                    k=1
-                for i in range(basex+k,newx):
-                    print("i : "+str(i))
+                print("GR2")
+                k=0
+                if basex!=7:
+                    if basex>newx:
+                        k=-1
+                    else:
+                        k=1
+                for i in range(max(0, basex+k),newx):
+                    print("1 i : "+str(i)+" k : "+str(k))
                     if self.getpiece(i,basey)!=None:
                         return True
                              
-                for i in range(newx+k,basex):
-                    print("i : "+str(i))
+                for i in range(max(0, newx-k),basex):
+                    print("2 i : "+str(i)+" k : "+str(k))
                     if self.getpiece(i,basey)!=None:
                         return True
                 
             else:
-                print("OUI 3")
+
                 if newx-basex>0:
                     incx=1
                 else:
@@ -189,5 +198,5 @@ class board:
         print("\n\n")
         self.allmoves()
 #        self.print()
-        self.check()
+#        self.check()
         return True

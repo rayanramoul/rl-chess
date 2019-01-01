@@ -59,10 +59,16 @@ class Example(QWidget):
         self.possible=QLabel(self)
         self.possible.move(850,50)
         self.possible.setText("Possible Moves")
+        self.state=QLabel(self)
+        self.state.move(850,750)
+        self.state.setText("No check")
+        self.state.resize(200, 20)
+        self.state.setFont(QFont('SansSerif', 25))
 
         self.possiblemoves=QListWidget(self)
         self.possiblemoves.move(830,100)
         self.possiblemoves.resize(180, 500)
+        
         self.lastbasex=0
         self.lastbasey=0
         self.lastnewx=0
@@ -177,6 +183,11 @@ class Example(QWidget):
                 self.buttons[endy][endx].setStyleSheet("")
 
             self.buttons[endy][endx].update()
+        bim=str(self.board.check())
+        if bim!="":
+            self.state.setText(bim+" in check.")
+        else:
+            self.state.setText("No Check")
         self.turn.setText(self.board.turn+"'s turn")
         self.update()
     def handleClickCase(self,indx,indy):
