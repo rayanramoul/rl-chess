@@ -34,8 +34,10 @@ class board:
         self.precmoves=[]
         self.moves=[]
         self.history=[]
+        self.history.append(deepcopy(self.board))
         self.allmoves()
         self.draw()
+
 
     def check(self):
         l=[]
@@ -54,8 +56,6 @@ class board:
         
         return ""
 
-    def checkmate(self):
-        pass
 
 
     def revoke(self):
@@ -71,6 +71,17 @@ class board:
         self.allmoves()
         return l     
 
+
+    def revokecheck(self):
+        l=[]
+        for i in self.pieces:
+            l.append(i.revoke()) 
+        if self.turn=="white":
+            self.turn="black"
+        else:
+            self.turn="white"
+        self.board=self.history.pop()
+        return l     
 
     def print(self):
         print('\n\n'.join(['\t'.join(['{:4}'.format(item) for item in row]) for row in self.board]))
@@ -155,21 +166,39 @@ class board:
 
     def allmoves(self):
         l=[]
+        checkmate=True
         self.precmoves=self.moves
+        gr=False
         for i in self.pieces:
-            for j in i.moves(self):
-                try:
-                    if (j.baseside!=self.getpiece(j.newx, j.newy).side) and j.newx>-1 and j.newx<8 and j.newy>-1 and j.newy<8 and j.baseside==self.turn and not(self.blocked(j.basex, j.basey, j.newx, j.newy)):
-                        l.append(j)
- #                       j.describe()
-                except:
-                    if j.newx>-1 and j.newx<8 and j.newy>-1 and j.newy<8 and j.baseside==self.turn and not(self.blocked(j.basex, j.basey, j.newx, j.newy)):
-                        l.append(j)
-#                        j.describe()
+            if i.x!=-1 and i.y!=-1:
+                for j in i.moves(self):
+                    gr=False
+                    try:
+                        if (j.baseside!=self.getpiece(j.newx, j.newy).side) and j.newx>-1 and j.newx<8 and j.newy>-1 and j.newy<8 and j.baseside==self.turn and not(self.blocked(j.basex, j.basey, j.newx, j.newy)):
+                            l.append(j)
+                            gr=True
+    #                       j.describe()
+                    except:
+                        if j.newx>-1 and j.newx<8 and j.newy>-1 and j.newy<8 and j.baseside==self.turn and not(self.blocked(j.basex, j.basey, j.newx, j.newy)):
+                            l.append(j)
+                            gr=True
+    #                        j.describe()
+                    if gr:
+                        actual=self.turn
+                        self.move(j.basex,j.basey,j.newx,j.newy,False)
+    #                    print("checkmate?")
+                        if self.check()==actual:
+                            l.pop()
+                        else:
+                            checkmate=False
+                        self.revokecheck()
+                        self.turn=actual
         self.moves=l
+        if checkmate:
+            print("CHECKMATE!!!")
         return l
                     
-    def move(self,basex, basey, newx, newy):
+    def move(self,basex, basey, newx, newy, test=True):
         if self.getpiece(basex, basey)==None:
             print("You're trying to move nothing !")
             return False
@@ -182,14 +211,14 @@ class board:
         if basex>7 or basex<0 or basey>7 or basex<0:
             print("Out of Board movement !")
             return False
-        elif self.board[newx][newy]!='O' and self.getpiece(basex, basey).side==self.getpiece(newx, newy).side:
+        elif test and self.board[newx][newy]!='O' and self.board[basex][basey]!='O'and self.getpiece(basex, basey).side==self.getpiece(newx, newy).side:
             print("You can't eat from your own side !")
             return False
         else:
             self.history.append(deepcopy(self.board))
             for o in self.pieces:
-                if o.x==newx and o.y==newy and i is not o:
-                    self.pieces[d].forcemove(-1,-1)
+                if o.x==newx and o.y==newy:
+                    o.forcemove(-1,-1)
             for i in self.pieces:
                 if i.x==basex and i.y==basey:
                     if i.move(newx, newy, self):
@@ -202,9 +231,10 @@ class board:
                         self.draw()
                 else:
                     i.addsamemove()
-        self.print()
-        print("\n\n")
-        self.allmoves()
+        if test:
+            self.print()
+            print("\n\n")
+            self.allmoves()
 #        self.print()
 #        self.check()
         return True
