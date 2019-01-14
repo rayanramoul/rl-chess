@@ -6,7 +6,25 @@ class piece:
         self.side=side
         self.x=x
         self.y=y
+        self.historyx=[]
+        self.historyy=[]
+        self.historyx.append(x)
+        self.historyy.append(y)
+    def revoke(self):
+        m=move(self.x, self.y, self.historyx[-1], self.historyy[-1],self.name, self.side)
+        self.x=self.historyx.pop()
+        self.y=self.historyy.pop()
+        return m
+        
+    def addsamemove(self):
+        self.historyx.append(self.x)
+        self.historyy.append(self.y)
 
+    def forcemove(self,x,y):
+        self.x=x
+        self.y=y
+        self.historyx.append(self.x)
+        self.historyy.append(self.y)
     def describe(self):
         print(" I am a "+str(self.side)+" "+str(self.name)+" on X = "+str(self.x)+" and Y = "+str(self.y)+"\n")
 
@@ -20,18 +38,25 @@ class pawn(piece):
     def move(self, x, y, board):
         if not self.moved and self.y==y and ((self.side=="black" and self.x-x>-3 and self.x-x<0) or (self.side=="white" and self.x-x>0 and self.x-x<3 )):
             print("Enabled movement")
+            self.historyx.append(self.x)
+            self.historyy.append(self.y)
             self.x=x
             self.y=y
             self.moved=True
             return True
         elif self.y==y and ((self.side=="black" and self.x-x>-2 and self.x-x<0) or (self.side=="white" and self.x-x>0 and self.x-x<2 )):
             print("Enabled movement")
+            self.historyx.append(self.x)
+            self.historyy.append(self.y)
             self.x=x
             self.y=y
+            
             self.moved=True
             return True
         elif board.getpiece(x, y)!=None and board.getpiece(x, y).side!=self.side and (self.y-y==-1 or self.y-y==1) and ((self.side=="black" and self.x-x>-2 and self.x-x<0) or (self.side=="white" and self.x-x>0 and self.x-x<2)):
             print("Enabled movement (eating)")
+            self.historyx.append(self.x)
+            self.historyy.append(self.y)
             self.x=x
             self.y=y
             self.moved=True
@@ -69,6 +94,8 @@ class knight(piece):
     def move(self, x, y, board):
         if ((self.x-x==2 or self.x-x==-2) and (self.y-y==1 or self.y-y==-1)) or ((self.y-y==2 or self.y-y==-2) and (self.x-x==1 or self.x-x==-1)):
             print("Enabled movement")
+            self.historyx.append(self.x)
+            self.historyy.append(self.y)
             self.x=x
             self.y=y
             self.moved=True
@@ -99,6 +126,8 @@ class bishop(piece):
     def move(self, x, y, board):
         if self.x-x==self.y-y or self.x-x==(-1)*(self.y-y):
             print("Enabled movement")
+            self.historyx.append(self.x)
+            self.historyy.append(self.y)
             self.x=x
             self.y=y
             self.moved=True
@@ -127,6 +156,8 @@ class rook(piece):
     def move(self, x, y, board):
         if self.y==y or self.x==x:
             print("Enabled movement")
+            self.historyx.append(self.x)
+            self.historyy.append(self.y)
             self.x=x
             self.y=y
             self.moved=True
@@ -151,6 +182,8 @@ class queen(piece):
     def move(self, x, y, board):
         if (self.y==y or self.x==x) or (self.x-x==self.y-y or self.x-x==(-1)*(self.y-y)):
             print("Enabled movement")
+            self.historyx.append(self.x)
+            self.historyy.append(self.y)
             self.x=x
             self.y=y
             self.moved=True
@@ -180,6 +213,8 @@ class king(piece):
     def move(self, x, y, board):
         if self.x-x<2 and self.x-x>-2 and self.y-y<2 and self.y-y>-2:
             print("Enabled movement")
+            self.historyx.append(self.x)
+            self.historyy.append(self.y)
             self.x=x
             self.y=y
             self.moved=True
@@ -199,3 +234,4 @@ class king(piece):
         l.append(move(self.x, self.y, self.x, self.y+1, self.name, self.side))
         l.append(move(self.x, self.y, self.x, self.y-1, self.name, self.side))
         return l
+

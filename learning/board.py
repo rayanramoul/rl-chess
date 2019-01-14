@@ -1,4 +1,5 @@
 from pieces import *
+from copy import deepcopy
 
 class board:
     def __init__(self, board=None, move=None):
@@ -32,8 +33,10 @@ class board:
         self.add(queen(0,3,"black"))
         self.precmoves=[]
         self.moves=[]
+        self.history=[]
         self.allmoves()
         self.draw()
+
     def check(self):
         l=[]
         for i in self.pieces:
@@ -51,9 +54,22 @@ class board:
         
         return ""
 
+    def checkmate(self):
+        pass
 
-        
 
+    def revoke(self):
+        l=[]
+        for i in self.pieces:
+            l.append(i.revoke()) 
+        if self.turn=="white":
+            self.turn="black"
+        else:
+            self.turn="white"
+        self.board=self.history.pop()
+        self.print()
+        self.allmoves()
+        return l     
 
 
     def print(self):
@@ -83,15 +99,10 @@ class board:
             d=d+1
 
     def blocked(self, basex, basey, newx, newy):
-        print("basex :"+str(basex))
-        print("basey :"+str(basey))
-        print("newx :"+str(newx))
-        print("newy :"+str(newy))
         if self.getpiece(basex, basey).name=="knight":
             return False
         else:
             if basex==newx:
-                print("GR1")
                 k=0
                 if basey!=7:
                     if basey>newy:
@@ -99,17 +110,14 @@ class board:
                     else:
                         k=1
                 for i in range(max(0, basey+k),newy):
-                    print("1 i : "+str(i)+" k : "+str(k))
                     if self.getpiece(basex,i)!=None:
                         return True
                 
                 for i in range(max(0, newy-k),basey):
-                    print("2 i : "+str(i)+" k : "+str(k))
                     if self.getpiece(basex,i)!=None:
                         return True
                 
             elif basey==newy:
-                print("GR2")
                 k=0
                 if basex!=7:
                     if basex>newx:
@@ -117,12 +125,10 @@ class board:
                     else:
                         k=1
                 for i in range(max(0, basex+k),newx):
-                    print("1 i : "+str(i)+" k : "+str(k))
                     if self.getpiece(i,basey)!=None:
                         return True
                              
                 for i in range(max(0, newx-k),basex):
-                    print("2 i : "+str(i)+" k : "+str(k))
                     if self.getpiece(i,basey)!=None:
                         return True
                 
@@ -170,7 +176,6 @@ class board:
         if self.getpiece(basex, basey).side!=self.turn:
             print("Move your own pieces !")
             return False
-        print("BLOCKED MOVE ??????")
         if self.blocked(basex, basey, newx, newy):
             print("There is another piece on the road ! ")
             return False
@@ -181,6 +186,10 @@ class board:
             print("You can't eat from your own side !")
             return False
         else:
+            self.history.append(deepcopy(self.board))
+            for o in self.pieces:
+                if o.x==newx and o.y==newy and i is not o:
+                    self.pieces[d].forcemove(-1,-1)
             for i in self.pieces:
                 if i.x==basex and i.y==basey:
                     if i.move(newx, newy, self):
@@ -189,12 +198,11 @@ class board:
                         else:
                             self.turn="white"
                         self.board[basex][basey]='O'
-                        d=0
-                        for o in self.pieces:
-                            if o.x==newx and o.y==newy and i is not o:
-                                del self.pieces[d]
-                            d=d+1
+                        
                         self.draw()
+                else:
+                    i.addsamemove()
+        self.print()
         print("\n\n")
         self.allmoves()
 #        self.print()
