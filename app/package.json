@@ -1,16 +1,17 @@
 {
-  "name": "app",
-  "version": "0.1.0",
-  "private": true,
-  "dependencies": {
-    "react": "^16.4.2",
-    "react-dom": "^16.4.2",
-    "react-scripts": "1.1.4"
-  },
+  "name": "openchess",
+  "version": "1.0.0",
+  "description": "open source chess game",
+  "main": "index.js",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Rayan Samy Ramoul",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "chessboard": "^2.0.0",
+    "ejs": "^2.6.1",
+    "fs": "0.0.1-security"
   }
 }

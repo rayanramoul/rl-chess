@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>openChess</title>
+    <link rel="stylesheet" href="chessboard-0.3.0.min.css">
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="chessboard-0.3.0.min.js"></script>
+   <script src="chess.js/chess.min.js"></script>
+
+  </head>
+  <body>
+        <style type="text/css">
+            .highlight-white {
+              -webkit-box-shadow: inset 0 0 3px 3px yellow;
+              -moz-box-shadow: inset 0 0 3px 3px yellow;
+              box-shadow: inset 0 0 3px 3px yellow;  
+            }
+            .highlight-black {
+              -webkit-box-shadow: inset 0 0 3px 3px blue;
+              -moz-box-shadow: inset 0 0 3px 3px blue;
+              box-shadow: inset 0 0 3px 3px blue;  
+            }
+            </style>
+    <a href="random">random vs random</a>
+      <div id="board" style="width: 400px"></div>
+      <p>Status: <span id="status"></span></p>
+    <script>
+      var board,
+  boardEl = $('#board'),
+  game = new Chess(),
+  squareClass = 'square-55d63',
+  squareToHighlight,
+  colorToHighlight;
+
+  var games_history=[];
+var actual_game={
+  "board_history":[],
+  "moves":[],
+  "winner":"",
+};
+
+var data;
+
+  document.addEventListener("gameover", function(e) {
+  console.log(e.detail); 
+  actual_game.board_history.push(game.fen());
+  actual_game.moves=game.history;
+  if(game.in_draw() || game.in_stalemate() || game.in_threefold_repetition()){actual_game.winner="none";}
+  else{actual_game.winner=game.turn();}
+  games_history.push(game);
+  console.log("actual game : "+actual_game.toSource());
+  actual_game={
+  "board_history":[],
+  "moves":[],
+  "winner":"",
+};
+console.log("all games : "+games_history.toSource());
+game.reset();
+var board = ChessBoard('board', cfg);
+var options = {
+  url: "send",
+      dataType: "json", // and this
+      contentType: "application/json; charset=utf-8",
+  type: "post",
+  data: JSON.stringify(games_history), // Our valid JSON string
+  success: function( data, status, xhr ) {
+     console.log("Seems okay");
+  },
+  error: function( xhr, status, error ) {
+      console.log(String(error));
+  }
+};
+$.ajax( options );
+
+});
+  var event = new CustomEvent("gameover", { "detail": "GameOver" });
+
+
+var makeRandomMove = function() {
+  var possibleMoves = game.moves({
+    verbose: true
+  });
+  // exit if the game is over
+  if (game.game_over() === true ||
+    game.in_draw() === true ||
+    possibleMoves.length === 0) 
+    {
+      document.dispatchEvent(event);
+    return;
+    }
+
+    
+
+  var randomIndex = Math.floor(Math.random() * possibleMoves.length);
+  var move = possibleMoves[randomIndex];
+
+  if (move.color === 'w') {
+    boardEl.find('.' + squareClass).removeClass('highlight-white');
+    boardEl.find('.square-' + move.from).addClass('highlight-white');
+    squareToHighlight = move.to;
+    colorToHighlight = 'white';
+  }
+  else {
+    boardEl.find('.square-55d63').removeClass('highlight-black');
+    boardEl.find('.square-' + move.from).addClass('highlight-black');
+    squareToHighlight = move.to;
+    colorToHighlight = 'black';    
+  }
+  actual_game.board_history.push(game.fen());
+  game.move(possibleMoves[randomIndex].san);
+  board.position(game.fen());
+
+  window.setTimeout(makeRandomMove, 1200);
+};
+
+var onMoveEnd = function() {
+  boardEl.find('.square-' + squareToHighlight)
+    .addClass('highlight-' + colorToHighlight);
+};
+
+var cfg = {
+  position: 'start',
+  onMoveEnd: onMoveEnd
+};
+board = ChessBoard('board', cfg);
+window.setTimeout(makeRandomMove, 1);
+if(game.game_over())
+{
+    alert(String(chess.pgn({ max_width: 5, newline_char: '<br />' })));
+
+}
+</script>
+
+</body>
+</html>
