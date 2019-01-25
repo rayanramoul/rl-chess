@@ -20,7 +20,9 @@ app.get('/minimax', function(req, res, next) {
 app.get('/random', function(req, res, next) {
   res.render('random.ejs')
 })
-
+app.get('/', function(req, res, next) {
+    res.render('reinforced.ejs')
+  })
 app.post("/send", (req, res) => {
 
   var obj={};

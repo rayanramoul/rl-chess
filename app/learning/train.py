@@ -1,6 +1,7 @@
 import chess
 import json
-#print(str(csv.head()))
+
+# Heuristics of every piece value
 switch={
             'p':10,
             'P':-10,
@@ -19,7 +20,7 @@ switch={
 
 
 q_table={}
-training_games=1000
+training_games=5000
 winner_reward=100
 loser_malus=0
 better_evaluation_reward=10
@@ -63,7 +64,7 @@ def get_best_move(state, moves):
 #    print("All moves : "+str(q_table[state]))
     return str(best_key)
 
-def maj_winner(fen_history, moves, lose_fen, lose_moves):
+def maj_winner(fen_history, moves, lose_fen, lose_moves): # the final reward at the end of the game that reward each (state,move) of winner (and decrease the ones of loser).
     maxi=len(fen_history)
     print("Maj end : ")
     i=0
@@ -107,15 +108,11 @@ while i<training_games:
         board.push(chess.Move.from_uci(god_damn_move))
         end_evaluation=evaluate_board(not board.turn)
         if end_evaluation>base_evaluation:
-#            print("eat maj god damn move : "+god_damn_move)
             q_table[str(fen)][god_damn_move]=q_table[str(fen)][str(god_damn_move)]+better_evaluation_reward
 
         elif end_evaluation<base_evaluation:
-#            print("got beat god damn move : "+god_damn_move)
             q_table[str(fen)][god_damn_move]=q_table[str(fen)][str(god_damn_move)]+bad_evaluation_malus
-
         else:
-#            print("it's okay maj god damn move : "+god_damn_move)
             q_table[str(fen)][god_damn_move]=q_table[str(fen)][str(god_damn_move)]+intermediate_evaluation_reward
 
 

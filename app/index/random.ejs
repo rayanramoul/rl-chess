@@ -21,7 +21,8 @@
               box-shadow: inset 0 0 3px 3px blue;  
             }
             </style>
-    <a href="random">random vs random</a>
+    <a href="/">reinforced</a><br/>
+    <a href="/minimax">minimax alpha-beta </a>
       <div id="board" style="width: 400px"></div>
       <p>Status: <span id="status"></span></p>
     <script>
@@ -74,44 +75,54 @@ $.ajax( options );
 
 });
   var event = new CustomEvent("gameover", { "detail": "GameOver" });
+function readTextFile(file, callback) {
+    var rawFile = new XMLHttpRequest();
+    rawFile.overrideMimeType("application/json");
+    rawFile.open("GET", file, true);
+    rawFile.onreadystatechange = function() {
+        if (rawFile.readyState === 4 && rawFile.status == "200") {
+            callback(rawFile.responseText);
+        }
+    }
+    rawFile.send(null);
+}
 
+var q_table;
+  console.log("Original fen : "+String(game.fen()));
+readTextFile("q_table.json", function(text){
+    var data = JSON.parse(text);
+    console.log(data);
+    q_table=data;
+});
 
 var makeRandomMove = function() {
-  var possibleMoves = game.moves({
-    verbose: true
-  });
-  // exit if the game is over
-  if (game.game_over() === true ||
-    game.in_draw() === true ||
-    possibleMoves.length === 0) 
-    {
-      document.dispatchEvent(event);
-    return;
-    }
+  var possibleMoves = game.moves();
+  var bestValue=-9999
+  // game over
+  if (possibleMoves.length === 0) return;
+  var minimum=0;
+  target=possibleMoves[0]
+  for(i in possibleMoves)
+  {
+      console.log("q initial "+String(q_table[String(game.fen())]))
+      if(q_table[String(game.fen())][String(i)]<=minimum)
+      {minimum=q_table[String(game.fen())][possibleMoves[String(i)]];target=String(i);}
+  }
+  var bestMove = target;
+  game.move(bestMove);
+  board.position(game.fen());
+    };
 
     
 
-  var randomIndex = Math.floor(Math.random() * possibleMoves.length);
-  var move = possibleMoves[randomIndex];
-
-  if (move.color === 'w') {
-    boardEl.find('.' + squareClass).removeClass('highlight-white');
-    boardEl.find('.square-' + move.from).addClass('highlight-white');
-    squareToHighlight = move.to;
-    colorToHighlight = 'white';
-  }
-  else {
-    boardEl.find('.square-55d63').removeClass('highlight-black');
-    boardEl.find('.square-' + move.from).addClass('highlight-black');
-    squareToHighlight = move.to;
-    colorToHighlight = 'black';    
-  }
-  actual_game.board_history.push(game.fen());
-  game.move(possibleMoves[randomIndex].san);
-  board.position(game.fen());
 
   window.setTimeout(makeRandomMove, 1200);
-};
+
+
+
+
+
+
 
 var onMoveEnd = function() {
   boardEl.find('.square-' + squareToHighlight)
@@ -123,7 +134,17 @@ var cfg = {
   onMoveEnd: onMoveEnd
 };
 board = ChessBoard('board', cfg);
+
+
+function sleep (time) {
+  return new Promise((resolve) => setTimeout(resolve, time));
+}
+
+sleep(500).then(() => {
 window.setTimeout(makeRandomMove, 1);
+
+});
+
 if(game.game_over())
 {
     alert(String(chess.pgn({ max_width: 5, newline_char: '<br />' })));
