@@ -6,6 +6,9 @@ import numpy as np
 import pickle 
 from keras.models import Sequential      # One layer after the other
 from keras.layers import Dense, Flatten  # Dense layers are fully connected layers, Flatten layers flatten out multidimensional inputs
+import tensorflow as tf
+import argparse
+import os
 
 # Create network. Input is two consecutive game states, output is Q-values of the possible moves.
 
@@ -33,13 +36,31 @@ switch={
             'K':-900,
             'None':0
         }
-
+parser = argparse.ArgumentParser()
+parser.add_argument('--number_of_games',type=float, default=1000000)
+parser.add_argument('--winner_reward',type=float, default=1)
+parser.add_argument('--loser_malus',type=float, default=-1)
+parser.add_argument('--epsilon',type=float, default=1)
+parser.add_argument('--decremental_epsilon',type=float, default=0.0001)
+parser.add_argument('--gamma',type=float, default=0.05)
+args = parser.parse_args()
+arguments = {'training_games': args.number_of_games, 'winner_reward': args.winner_reward,'loser_malus': args.loser_malus, 'epsilon': args.epsilon,'decremental_epsilon': args.decremental_epsilon, 'gamma': args.gamma}
 general_moves={}
-training_games=1000000
-winner_reward=1
-loser_malus=-1
-epsilon = 0.98                              # Probability of doing a random move
-gamma = 0.05                                # Discounted future reward. How much we care about steps further in time
+
+training_games=int(arguments['training_games']) if (arguments['training_games'] is not None) else 1000000
+winner_reward=int(arguments['winner_reward']) if (arguments['winner_reward'] is not None) else 1
+loser_malus=int(arguments['loser_malus']) if (arguments['loser_malus'] is not None) else -1
+epsilon = int(arguments['epsilon']) if (arguments['epsilon'] is not None) else 1                            # Probability of doing a random move
+decremental_epsilon=int(arguments['decremental_epsilon']) if (arguments['decremental_epsilon'] is not None) else 1/training_games    # Each game we play we want to decrease the probability of random move
+gamma = int(arguments['gamma']) if (arguments['gamma'] is not None) else 0.05                                # Discounted future reward. How much we care about steps further in time
+
+print("Training the Deep-Q-Network with parameters : ")
+print("Number of training games : "+str(training_games))
+print("Winner Reward : "+str(winner_reward))
+print("Loser Malus : "+str(loser_malus))
+print("Epsilon : "+str(epsilon))
+print("Decremental Epsilon : "+str(decremental_epsilon))
+print("Gamma : "+str(gamma))
 
 def evaluate_board(turn): # Evaluate the board following the value of each piece
     l=chess.SQUARES
@@ -52,7 +73,7 @@ def evaluate_board(turn): # Evaluate the board following the value of each piec
     b=0
     for i in l:
         total=total+(mult*switch[str(board.piece_at(i))])
-        state_board[0][a]=switch[str(board.piece_at(i))] # Update the state_board variable used for predictions
+        state_board[0][a]=mult*switch[str(board.piece_at(i))] # Update the state_board variable used for predictions
         a+=1
     return total
  
@@ -63,7 +84,7 @@ def get_int(move):  # Give the int representation(maping) of the move from the d
         general_moves[str(move)]=len(general_moves)
         return general_moves[str(move)]
 
-def maj_winner(fen_history, moves, lose_fen, lose_moves): # the final reward at the end of the game that reward each (state,move) of winner (and decrease the ones of loser).
+def reward(fen_history, moves, lose_fen, lose_moves): # the final reward at the end of the game that reward each (state,move) of winner (and decrease the ones of loser).
     maxi=len(fen_history)
     i=0
     inputs=[]
@@ -86,7 +107,16 @@ all_number_of_moves=[]
 winners={}                                 # Variable for counting number of wins of each player
 board=chess.Board()
 while i<training_games:
+    os.system('clear')
+    print("/------------------ Training -----------------/")
     print("Game N°"+str(i))
+    print("WINNERS COUNT : \n"+str(winners))
+    print("Number of remaining training games : "+str(training_games-i))
+    print("Winner Reward : "+str(winner_reward))
+    print("Loser Malus : "+str(loser_malus))
+    print("Epsilon : "+str(epsilon))
+    print("Decremental Epsilon : "+str(decremental_epsilon))
+    print("Gamma : "+str(gamma))
     fen_history=[]
     black_moves=[]
     white_moves=[]
@@ -127,16 +157,24 @@ while i<training_games:
     all_number_of_moves.append(number_of_moves)
     i=i+1
     if board.result()=="1-0":
-        maj_winner(white_fen_history, white_moves, black_fen_history, black_moves)
+        reward(white_fen_history, white_moves, black_fen_history, black_moves)
     elif board.result()=="0-1":
-        maj_winner(black_fen_history, black_moves, white_fen_history, white_moves)
+        reward(black_fen_history, black_moves, white_fen_history, white_moves)
     try:
         winners[str(board.result())]=winners[str(board.result())]+1
     except:
         winners[str(board.result())]=1
     board.reset()
-    
-
+    epsilon-=decremental_epsilon 
 print("WINNERS COUNT : \n"+str(winners))
-with open('../index/q_table.json', 'w') as fp:   # Save the mapping Move/Index to be used on developement
+#tf.clear_session()
+with open('generalized_moves.json', 'w') as fp:   # Save the mapping Move/Index to be used on developement
     json.dump(general_moves, fp)
+
+model_json = model.to_json()
+with open("model.json", "w") as json_file:
+    json_file.write(model_json)
+graph = tf.get_default_graph()
+with graph.as_default():
+    model.save_weights("model.h5")
+

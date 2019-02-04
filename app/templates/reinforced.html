@@ -1,18 +1,162 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>openChess</title>
+    <title>Arcane Chess</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='chessboard-0.3.0.min.css') }}">
     <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
     <script src="{{ url_for('static', filename='chessboard-0.3.0.min.js') }}"></script>
    <script src="{{ url_for('static', filename='chess.js/chess.min.js') }}"></script>
+   <script src="{{ url_for('static', filename='particles.js') }}"></script>
+   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"></script>
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   </head>
   <body>
-    <a href="random">random vs random</a><br/>
-    <a href="/minimax">minimax alpha-beta </a>
-      <div id="board" style="width: 400px"></div>
-      <p>Status: <span id="status"></span></p>
-    <script>
+      <div id="particles-js"></div>
+      <ul class="nav justify-content-center border-bottom-0 toto-top">
+          <li class="nav-item">
+            <a class="nav-link text-info " href="random">Random VS Random</a>
+          </li>
+          <li class="nav-item border-bottom-0">
+            <a class="nav-link text-info active" href="/">Reinforced Agent</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-info" href="minimax">Minimax Alpha-Beta</a>
+          </li>
+        </ul>
+    <div class="container-fluid">
+      <div class="row justify-content-center" style="padding-bottom: -300px;">
+        <div class="centered center-screen"id="board" style="width: 400px;height: 400px;"></div>
+      </div>
+      <div class="row justify-content-center text-light" > <p>Status: <span id="status"></span></p></div> 
+      <div class="row justify-content-center text-light"><a href="https://github.com/raysr/openChess" class="fa fa-github"></a></div>
+      
+     </div>
+  </div>  
+
+    <script defer="defer">
+  particlesJS('particles-js',
+  
+  {
+    "particles": {
+      "number": {
+        "value": 80,
+        "density": {
+          "enable": true,
+          "value_area": 800
+        }
+      },
+      "color": {
+        "value": "#ffffff"
+      },
+      "shape": {
+        "type": "circle",
+        "stroke": {
+          "width": 0,
+          "color": "#b1bac9"
+        },
+        "polygon": {
+          "nb_sides": 5
+        },
+        "image": {
+          "src": "img/github.svg",
+          "width": 100,
+          "height": 100
+        }
+      },
+      "opacity": {
+        "value": 0.5,
+        "random": false,
+        "anim": {
+          "enable": false,
+          "speed": 1,
+          "opacity_min": 0.1,
+          "sync": false
+        }
+      },
+      "size": {
+        "value": 5,
+        "random": true,
+        "anim": {
+          "enable": false,
+          "speed": 40,
+          "size_min": 0.1,
+          "sync": false
+        }
+      },
+      "line_linked": {
+        "enable": true,
+        "distance": 150,
+        "color": "#ffffff",
+        "opacity": 0.4,
+        "width": 1
+      },
+      "move": {
+        "enable": true,
+        "speed": 6,
+        "direction": "none",
+        "random": false,
+        "straight": false,
+        "out_mode": "out",
+        "attract": {
+          "enable": false,
+          "rotateX": 600,
+          "rotateY": 1200
+        }
+      }
+    },
+    "interactivity": {
+      "detect_on": "canvas",
+      "events": {
+        "onhover": {
+          "enable": true,
+          "mode": "repulse"
+        },
+        "onclick": {
+          "enable": true,
+          "mode": "push"
+        },
+        "resize": true
+      },
+      "modes": {
+        "grab": {
+          "distance": 400,
+          "line_linked": {
+            "opacity": 1
+          }
+        },
+        "bubble": {
+          "distance": 400,
+          "size": 40,
+          "duration": 2,
+          "opacity": 8,
+          "speed": 3
+        },
+        "repulse": {
+          "distance": 200
+        },
+        "push": {
+          "particles_nb": 4
+        },
+        "remove": {
+          "particles_nb": 2
+        }
+      }
+    },
+    "retina_detect": true,
+    "config_demo": {
+      "hide_card": false,
+      "background_color": "#b61924",
+      "background_image": "",
+      "background_position": "50% 50%",
+      "background_repeat": "no-repeat",
+      "background_size": "cover"
+    }
+  }
+
+);
+   
 var board,
   game = new Chess();
   statusEl = $('#status');
@@ -32,25 +176,7 @@ bishop=30
 tower=50
 queen=90
 king=900
-function readTextFile(file, callback) {
-    var rawFile = new XMLHttpRequest();
-    rawFile.overrideMimeType("application/json");
-    rawFile.open("GET", file, true);
-    rawFile.onreadystatechange = function() {
-        if (rawFile.readyState === 4 && rawFile.status == "200") {
-            callback(rawFile.responseText);
-        }
-    }
-    rawFile.send(null);
-}
 
-var q_table;
-  console.log("Original fen : "+String(game.fen()));
-readTextFile("q_table.json", function(text){
-    var data = JSON.parse(text);
-    console.log(data);
-    q_table=data;
-});
 cases=[]
 for(i=1;i<9;i++)
 {
@@ -127,25 +253,50 @@ var onMouseoutSquare = function(square, piece) {
 };
 
 var onSnapEnd = function() {
-  board.position(game.fen());z
+  board.position(game.fen());
 };
+
+function sendState(state, cb)
+{
+   var qurl="send_move";
+   console.log("fen : "+state)
+   $.ajax({
+            type: "POST",
+            cache: false,
+            data:JSON.stringify({"fen":state,"turn":game.turn()}),
+            url: qurl,
+            contentType: 'application/json;charset=UTF-8',
+            success: function(data) {
+
+                console.log(data);
+                return cb(data);             
+            },
+            error: function(jqXHR, data) {
+                alert("error: " + jqXHR.status+"sending : "+data);
+                console.log(data);
+
+            }
+        })
+}
+
 
 var makeRandomMove = function() {
   var possibleMoves = game.moves();
-  var bestValue=-9999
-  // game over
-  if (possibleMoves.length === 0) return;
-  var minimum=0;
-
-  for(i in possibleMoves)
+  
+  // exit if the game is over
+  if (game.game_over() === true ||
+    game.in_draw() === true ||
+    possibleMoves.length === 0) return;
+  var bMove;
+  sendState(game.fen(), (bestMove)=>
   {
-      console.log("q initial "+String(q_table[game.fen()]))
-      if(q_table[game.fen()][i]<=minimum)
-      {minimum=q_table[game.fen()][possibleMoves[i]];target=i;}
-  }
-  var bestMove = target;
-  game.move(bestMove);
+    bMove=bestMove;
+  game.move(bMove,{sloppy: true});
   board.position(game.fen());
+
+  });
+
+
 };
 
 var onDrop = function(source, target) {

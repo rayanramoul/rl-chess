@@ -1,0 +1,57 @@
+html {
+    width: 100%;
+    height: 100%;
+  }
+  body {
+    background-color: #063b5b;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  .center-screen {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 100vh;
+  }
+  #particles-js {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+  canvas
+  {
+    z-index: 0;
+  }
+  #nav-item
+  {
+    z-index: 9999;
+    index: 50;
+  }
+  #particles canvas{
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+  }
+  .my-content {
+    z-index: 1;
+    width: 150px;
+    height: 150px;
+    background-color: white;
+    
+  }
+  .toto-top
+  {
+    width: 100%;
+    position:absolute;
+    justify-content: center;
+    z-index: 9999;
+  }
