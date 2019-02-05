@@ -43,7 +43,7 @@ Each of those ones are explained in the Approach section of this README.
 
 ## Approach
 ### Chess Game Representation :
- For the purpose of training, we need to represent 3 main aspect :
+ For the purpose of training, we need to represent 4 main aspects :
  * State(S)
  * Reward(R)
  * Action(A)
