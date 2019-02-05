@@ -9,6 +9,11 @@ coverage
 # production
 /build
 
+
+generalized_moves.json
+model.h5
+model.json
+*pycache*
 # misc
 .DS_Store
 .env.local
