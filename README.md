@@ -19,7 +19,7 @@ python3.6 learning/train.py
 Then deploy the local server :
 ```sh
 cd Arcane-Chess/app
-python3.6 
+python3.6 main.py
 ```
 
 ## Usage example
@@ -80,7 +80,7 @@ And same goes for the loser :
 	Malus_i := (Gamma*i) * Loser_Malus (negative value)
 ```
 ### Action :
-This is simply the vector of all possible moves for the current player from the actual state.
+This is simply the vector of all possible moves for the current player from the actual state. The game of chess follow a Markov Decision Process (MDP), the decision is partly random and partly following a decision maker, probability to choose a move from a state is independant of previous states and actions.
 
 ### Quality :
 This, is the factor that determines which move should the agent do, it represents the evaluation of quality for a given action Ai when on the state Si. Initialized with zeros it can be represented as a matrix where the columns are the actions and the lines are the states, then at each batch of games, is updated with the corresponding reward/malus.
