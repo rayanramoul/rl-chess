@@ -1,5 +1,5 @@
 # Arcane Chess
-> Web base and deep-q-learning based chess game.
+> Web based and deep-q-learning powered chess game.
 
 Arcane Chess is a modal based on a Deep Reinforcement Learning approach to master the chess game.
 You can train your own Reinforced Agent and then deploy-it online and oppose him.
@@ -38,9 +38,9 @@ Then you can execute the train script with optional parameters :
 python3 learning/train.py --number_of_games 100000 --winner_reward 1 --loser_malus -1 --epsilon 1
                           --decremental_epsilon 0.0001 --gamma 0.05
 ```
-Each of those ones are explained in the Methodology section of this README.
+Each of those ones are explained in the Approach section of this README.
 
-## Methodoloy
+## Approach
 
 ## Libraries Used
 
