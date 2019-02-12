@@ -50,9 +50,9 @@ general_moves={}
 training_games=int(arguments['training_games']) if (arguments['training_games'] is not None) else 1000000
 winner_reward=int(arguments['winner_reward']) if (arguments['winner_reward'] is not None) else 1
 loser_malus=int(arguments['loser_malus']) if (arguments['loser_malus'] is not None) else -1
-epsilon = int(arguments['epsilon']) if (arguments['epsilon'] is not None) else 1                            # Probability of doing a random move
-decremental_epsilon=int(arguments['decremental_epsilon']) if (arguments['decremental_epsilon'] is not None) else 1/training_games    # Each game we play we want to decrease the probability of random move
-gamma = int(arguments['gamma']) if (arguments['gamma'] is not None) else 0.05                                # Discounted future reward. How much we care about steps further in time
+epsilon = float(arguments['epsilon']) if (arguments['epsilon'] is not None) else 1                            # Probability of doing a random move
+decremental_epsilon=float(arguments['decremental_epsilon']) if (arguments['decremental_epsilon'] is not None) else 1/training_games    # Each game we play we want to decrease the probability of random move
+gamma = float(arguments['gamma']) if (arguments['gamma'] is not None) else 0.05                                # Discounted future reward. How much we care about steps further in time
 
 print("Training the Deep-Q-Network with parameters : ")
 print("Number of training games : "+str(training_games))
@@ -135,13 +135,13 @@ while i<training_games:
                 cnt+=1
                     
         else:
-            print("q move")
+            #print("q move")
             evaluate_board(True)
             Q={}
             for kr in board.legal_moves:
                 br=get_int(kr)
                 state_board[0][64]=br
-                print(str([state_board]))
+                #print(str([state_board]))
                 Q[kr]=model.predict(state_board)          # Q-values predictions for every action possible with the actual state
             god_damn_move = max(Q.items(), key=operator.itemgetter(1))[0] # Get the movest with the highest Q-value
         base_evaluation=evaluate_board(board.turn)
