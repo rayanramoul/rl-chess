@@ -19,6 +19,7 @@ model.add(Dense(18, init='uniform', activation='relu'))
 model.add(Dense(18, init='uniform', activation='relu'))
 model.add(Dense(18, init='uniform', activation='relu'))
 model.add(Dense(10, init='uniform', activation='relu'))
+model.add(Dense(10, init='uniform', activation='relu'))
 model.add(Dense(1, init='uniform', activation='relu'))    # Same number of outputs as possible actions
 model.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
 np.set_printoptions(threshold=np.inf)
@@ -51,7 +52,7 @@ arguments = {'training_games': args.number_of_games, 'winner_reward': args.winne
 general_moves={}
 
 
-steps=10000
+steps=100000
 training_games=int(arguments['training_games']) if (arguments['training_games'] is not None) else 100
 winner_reward=int(arguments['winner_reward']) if (arguments['winner_reward'] is not None) else 1
 loser_malus=int(arguments['loser_malus']) if (arguments['loser_malus'] is not None) else -1
