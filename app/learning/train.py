@@ -52,7 +52,7 @@ arguments = {'training_games': args.number_of_games, 'winner_reward': args.winne
 general_moves={}
 
 
-steps=100000
+steps=1000
 training_games=int(arguments['training_games']) if (arguments['training_games'] is not None) else 100
 winner_reward=int(arguments['winner_reward']) if (arguments['winner_reward'] is not None) else 1
 loser_malus=int(arguments['loser_malus']) if (arguments['loser_malus'] is not None) else -1
