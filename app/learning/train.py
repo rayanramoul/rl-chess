@@ -96,6 +96,7 @@ def reward(fen_history, moves, lose_fen, lose_moves): # the final reward at the 
     inputs=[]
     targets=[]
     while i<maxi:
+        gamma=1/len(fen_history)
         fen_history[i][0][64]=get_int(moves[i])
         inputs.append(fen_history[i][0])
         model.train_on_batch(np.array(fen_history[i]),model.predict(np.array(fen_history[i]))+winner_reward*(gamma*i))
@@ -103,6 +104,7 @@ def reward(fen_history, moves, lose_fen, lose_moves): # the final reward at the 
     maxi=len(lose_fen)
     i=0
     while i<maxi:
+        gamma=1/len(lose_fen)
         lose_fen[i][0][64]=get_int(lose_moves[i])
         model.train_on_batch(np.array(lose_fen[i]),model.predict(np.array(lose_fen[i]))+loser_malus*(gamma*i))
         i=i+1
