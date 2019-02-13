@@ -115,6 +115,8 @@ for joum in range(0, steps):
     evaluation_history=[]
     all_number_of_moves=[]            
     board=chess.Board()
+    epsilon=1
+    decremental_epsilon=1/training_games
     while i<training_games:
         os.system('clear')
         print("/------------------ Training -----------------/")
