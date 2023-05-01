@@ -41,6 +41,15 @@ python3.6 learning/train.py --number_of_games 100000 --winner_reward 1 --loser_m
 Each of those ones are explained in the Approach section of this README.
 
 
+## TODO
+- Rework the project architecture to create : training, frontend, gym-env, your-agents, pro-players data, etc.
+- Wrap all the chess logic  in a gym environement
+- Create a backend api (FastAPI) to interact with to create a game, choose action, etc.
+- Create a frontend api to send to the different game states and  movements.
+- Rework the frontend with better visuals.
+
+
+
 ## Approach
 ### Chess Game Representation :
  For the purpose of training, we need to represent 4 main aspects :
