@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import chess
 
 import flet as ft
 from pprint import pprint
@@ -7,6 +8,8 @@ from pprint import pprint
 
 
 page = None
+board = chess.Board()
+
 @dataclass
 class Square():
     top: int
@@ -14,7 +17,6 @@ class Square():
 
 
 def drag(e: ft.DragUpdateEvent):
-    print("DRAGGING")
     e.control.top = max(0, e.control.top + e.delta_y)
     e.control.left = max(0, e.control.left + e.delta_x)
     e.control.update()
@@ -22,7 +24,6 @@ def drag(e: ft.DragUpdateEvent):
     
 def place(card, slot):
     global page
-    print("PLACING ? ", (card, slot))
     """place card to the slot"""
     card.top = slot.top
     card.left = slot.left
@@ -44,7 +45,6 @@ def generate_grid(page):
     slots = []
     for l1 in range(8):
         for l2 in range(8):
-            print("Adding :)")
             square = ft.Container(bgcolor=ft.colors.BLUE, width=70, height=70, top=l1*70, left=l2*70, border=ft.border.all(1))
             slots.append(square)
             the_grid.controls.append(square)
@@ -52,7 +52,6 @@ def generate_grid(page):
                 the_grid.controls[-1].bgcolor=ft.colors.WHITE
             else:
                 the_grid.controls[-1].bgcolor=ft.colors.BROWN
-    
     pawns = []
     
     def bounce_back(game, top, left):
@@ -151,6 +150,7 @@ def main(the_page: ft.Page):
     page = the_page     
     the_grid, pawns = generate_grid(the_page)
     the_page.add(ft.Stack(controls=[the_grid, pawns], width=1920, height=1080))
+
 
 # Run flet app in browser
 ft.app(target=main)
