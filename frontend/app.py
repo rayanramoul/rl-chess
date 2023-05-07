@@ -55,19 +55,26 @@ def generate_grid(page):
     
     pawns = []
     
+    def bounce_back(game, top, left):
+        """return card to its original position"""
+        card.top = top
+        card.left = left
+        page.update()
+
+    
     def drop(e: ft.DragEndEvent):
         print("DROP EVENT")
         for slot in slots:
             print(f"slot : {slot.top}, {slot.left}")
             print(f"card : {e.control.top}, {e.control.left}")
             if (
-                abs(e.control.top - slot.top) < 20
-            and abs(e.control.left - slot.left) < 20
+                abs(e.control.top - slot.top+(70/2)) < 50
+            and abs(e.control.left - slot.left+(70/2)) < 50
             ):
                 place(e.control, slot)
                 e.control.update()
                 return None
-        #bounce_back(solitaire, e.control)
+        bounce_back(solitaire, e.control)
         # e.control.update()
 
     """"""
@@ -105,7 +112,6 @@ def generate_grid(page):
         ))
         pawns.append(card)
         
-        
         card = ft.GestureDetector(
         mouse_cursor=ft.MouseCursor.MOVE,
         drag_interval=5,
@@ -136,7 +142,7 @@ def generate_grid(page):
         ))
         pawns.append(card)
         
-    pawns = ft.Stack(controls=pawns, width=500, height=500)    
+    pawns = ft.Stack(controls=pawns, width=1920, height=1080)    
     return the_grid, pawns
     
     
@@ -146,4 +152,5 @@ def main(the_page: ft.Page):
     the_grid, pawns = generate_grid(the_page)
     the_page.add(ft.Stack(controls=[the_grid, pawns], width=1920, height=1080))
 
+# Run flet app in browser
 ft.app(target=main)
