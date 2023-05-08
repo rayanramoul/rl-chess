@@ -42,11 +42,12 @@ Each of those ones are explained in the Approach section of this README.
 
 
 ## TODO
-- Rework the project architecture to create : training, frontend, gym-env, your-agents, pro-players data, etc.
-- Wrap all the chess logic  in a gym environement
-- Create a backend api (FastAPI) to interact with to create a game, choose action, etc.
-- Create a frontend api to send to the different game states and  movements.
-- Rework the frontend with better visuals.
+- [X] Rework the project architecture to create : training, frontend, gym-env, your-agents, pro-players data, etc.
+- [] Implement on interface the possibility to choose pawn promotion and to do castling.
+- [] Wrap all the chess logic  in a gym environement
+- [] Create a backend api (FastAPI) to interact with to create a game, choose action, etc.
+- [] Create a frontend api to send to the different game states and  movements.
+- [] Rework the frontend with better visuals.
 
 
 
