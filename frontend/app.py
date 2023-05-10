@@ -25,7 +25,7 @@ LEFT_POSITION_BOARD = 60
 
 move_sound = ft.Audio(src=os.path.join(ACTUAL_PATH, "sounds/move.wav"))
 wrong_move_sound = ft.Audio(src=os.path.join(ACTUAL_PATH, "sounds/wrong_move.mp3"))
-background_music = ft.Audio(src=os.path.join(ACTUAL_PATH, "sounds/background_music.mp3")) #, autoplay=True)
+background_music = ft.Audio(src=os.path.join(ACTUAL_PATH, "sounds/background_music.mp3"), autoplay=True)
 
 def drag(e: ft.DragUpdateEvent):
     e.control.top = max(0, e.control.top + e.delta_y)
