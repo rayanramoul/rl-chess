@@ -137,7 +137,7 @@ def drop(e: ft.DragEndEvent, white_turn, page, slots, chess_board_map, board, pa
         sound_panels['wrong_move_sound'].play()
         original_color = slots[closest_slot].bgcolor
         slots[closest_slot].bgcolor=ft.colors.RED
-        bounce_back(e.control, slots[closest_slot].top+TOP_POSITION_BOARD, slots[closest_slot].left+LEFT_POSITION_BOARD)
+        bounce_back(e.control, slots[closest_slot].top+TOP_POSITION_BOARD, slots[closest_slot].left+LEFT_POSITION_BOARD, page)
         slots[closest_slot].update()
         time.sleep(2)
         slots[closest_slot].bgcolor=original_color
