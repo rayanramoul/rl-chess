@@ -69,6 +69,7 @@ def bounce_back(card, top, left, page):
     """return card to its original position"""
     card.top = top
     card.left = left
+    card.update()
     page.update()
 
 
@@ -155,12 +156,14 @@ def drop(e: ft.DragEndEvent, white_turn, page, slots, chess_board_map, board, pa
     
     if not white_turn:
         agent_movement = ag.choose_movement(board, board.legal_moves)
-        print("\n\nAgent movement : ", agent_movement)
+        # print("\n\nAgent movement : ", agent_movement)
         # do corresponding movement selected from agent
         start_pawn = None
         starting_tile = str(agent_movement)[:2]
         ending_tile = str(agent_movement)[2:4]
         end_tile_component = None
+        start_tile_component = chess_board_map[starting_tile][0]
+        # print("\n\nstart_tile_component : ", start_tile_component, "\n\n")
         for pawn in PAWNS_NAMES:
             if pawn["piece_square"] == starting_tile:
                 start_pawn = pawn["component"]
@@ -173,13 +176,16 @@ def drop(e: ft.DragEndEvent, white_turn, page, slots, chess_board_map, board, pa
             # print("tile : ", tile)
             if chess_board_map[tile][1] == chess_board_map[starting_tile][1]:
                 end_tile_component = chess_board_map[tile][0]
-        print("Start Pawn : ", start_pawn.left," / " , start_pawn.top)
+        # print("Start Pawn : ", start_pawn.left," / " , start_pawn.top)
+        
         place(start_pawn, end_tile_component, page)
         PAWNS_NAMES[[l['component'] for l in PAWNS_NAMES].index(start_pawn)]["piece_square"] = ending_tile
-        start_pawn.update()
-        end_tile_component.update()
+        
         board.push(agent_movement)
         print(board)
+        start_pawn.update()
+        start_tile_component.update()
+        end_tile_component.update()
     e.control.update()
     
     
