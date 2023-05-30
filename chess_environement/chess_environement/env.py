@@ -1,69 +1,80 @@
+import gym
+from gym import spaces
 import chess
-from gym import spaces, error, utils, Env
-from gym.utils import seeding
 
-
-switch={
-            'p':10,
-            'P':-10,
-            'q':90,
-            'Q':-90,
-            'n':30,
-            'N':-30,
-            'r':50,
-            'R':-50,
-            'b':30,
-            'B':-30,
-            'k':900,
-            'K':-900,
-            'None':0
-}
-
-
-class Piece:
-    def __init__(self, color, piece_type, position):
-        self.color = color
-        self.piece_type = piece_type
-        self.position = position
-
-    def __str__(self):
-        return self.color + " " + self.piece_type + " " + self.position
-    
-
-class ChessEnv(Env):
+class ChessEnv(gym.Env):
     def __init__(self):
+        super(ChessEnv, self).__init__()
+
+        # Define the observation space
+        self.observation_space = spaces.Box(low=0, high=1, shape=(64,))  # 8x8 board representation
+
+        # Define the action space
+        self.action_space = spaces.Discrete(4096)  # 64*64 possible moves
+
+        # Create a Chess board object
         self.board = chess.Board()
-        self.pieces = []
-        self.turn = 0
-        self.winner = None
-        self.legal_moves = []
-        self.legal_moves_dict = {}
-        self.state = []
-        self.reward = 0
-        self.done = False
-        self.info = {}
-    
+
     def reset(self):
-        self.board = chess.Board() 
-    
+        # Reset the board to the initial state
+        self.board.reset()
+
+        # Convert the board position to an observation
+        observation = self._get_observation()
+
+        return observation
+
     def step(self, action):
-        pass  
-    
-    def info(self):
-        pass   
-    
-    @property
-    def state(self): 
-        pass 
-    
-    @state.setter
-    def state(self, state):
-        pass
-    
-    
-    @property
-    def possible_actions(self):
-        self.board.legal_moves
-    
-    
-"
+        # Convert the action to a move on the board
+        move = self._action_to_move(action)
+
+        # Make the move on the board
+        self.board.push(move)
+
+        # Convert the board position to an observation
+        observation = self._get_observation()
+
+        # Get the reward and check if the game is over
+        reward = self._get_reward()
+        done = self.board.is_game_over()
+
+        return observation, reward, done, {}
+
+    def render(self, mode='human'):
+        print(self.board)
+
+    def _get_observation(self):
+        # Convert the board position to a binary observation
+        observation = []
+
+        for square in chess.SQUARES:
+            piece = self.board.piece_at(square)
+            if piece is not None:
+                observation.append(1)  # Piece present
+                observation.extend(self._encode_piece(piece))
+            else:
+                observation.append(0)  # Empty square
+
+        return observation
+
+    def _get_reward(self):
+        # Simple reward function example
+        if self.board.is_checkmate():
+            return 1  # Win
+        elif self.board.is_stalemate() or self.board.is_insufficient_material():
+            return 0.5  # Draw
+        else:
+            return 0  # No reward
+
+    def _action_to_move(self, action):
+        # Convert action index to a move
+        moves = list(self.board.legal_moves)
+        move = moves[action]
+        return move
+
+    def _encode_piece(self, piece):
+        # Encode the piece type using a one-hot encoding
+        piece_types = ['p', 'r', 'n', 'b', 'q', 'k']
+        encoding = [0] * 6
+        encoding[piece_types.index(piece.symbol().lower())] = 1
+        return encoding

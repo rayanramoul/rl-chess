@@ -7,15 +7,22 @@ from dataclasses import dataclass
 import flet as ft
 import settings
 
+import sys
+# caution: path[0] is reserved for script path (or '' in REPL)
+sys.path.insert(1, '/Users/rayansamyramoul/Documents/Github/Arcane-Chess/app/agent')
+
+from agent import Agent
+
 TOP_POSITION_BOARD = 60
 LEFT_POSITION_BOARD = 60
 ACTUAL_PATH = os.getcwd()
+PAWNS_NAMES = []
 
 closest_slot = None
 closest_arrival_slot = None
 
 promotion_gv = None
-
+ag = Agent()
 
 def drag(e: ft.DragUpdateEvent):
     e.control.top = max(0, e.control.top + e.delta_y)
@@ -62,11 +69,12 @@ def bounce_back(card, top, left, page):
     """return card to its original position"""
     card.top = top
     card.left = left
+    card.update()
     page.update()
 
 
 def drop(e: ft.DragEndEvent, white_turn, page, slots, chess_board_map, board, pawns, sound_panels, player_box1, player_box2, previous_moves_list):
-    global closest_arrival_slot, closest_slot
+    global closest_arrival_slot, closest_slot, PAWNS_NAMES
     for slot in slots:
         if (
             abs(e.control.top - slot.top+(70/2) - TOP_POSITION_BOARD)  < 50
@@ -84,14 +92,7 @@ def drop(e: ft.DragEndEvent, white_turn, page, slots, chess_board_map, board, pa
                     start_tile = tile
             break
     
-    print("\n\n VISIBLE \n\n")
     promotion_gv.visible = True
-    # promotion_gv.left = 200 # e.control.left
-    # promotion_gv.top = 200# e.control.top
-    #promotion_gv.visible = True
-    #promotion_gv.update()
-    # promotion_gv.left = e.control.left
-    # promotion_gv.top = e.control.top
     promotion_gv.update()
     
     print("Moving from ", start_tile, " to ", end_tile)
@@ -113,6 +114,10 @@ def drop(e: ft.DragEndEvent, white_turn, page, slots, chess_board_map, board, pa
         if move_promotion.promotion is not None and move_promotion in board.legal_moves:
             move = move_promotion
             e.control.content.src = os.path.join(ACTUAL_PATH, f"assets/{'w' if white_turn else 'b'}{settings.next_promotion}.png")
+        for pawn in PAWNS_NAMES:
+            if pawn["piece_square"] == start_tile:
+                pawn["piece_square"] = end_tile
+                break
         
         previous_moves_list.controls.append(ft.Text(str(move)))
         previous_moves_list.update()
@@ -146,6 +151,41 @@ def drop(e: ft.DragEndEvent, white_turn, page, slots, chess_board_map, board, pa
     print(board)
     closest_arrival_slot = None
     closest_arrival_slot = None
+    
+    # AGENT MOVEMENTS
+    
+    if not white_turn:
+        agent_movement = ag.choose_movement(board, board.legal_moves)
+        # print("\n\nAgent movement : ", agent_movement)
+        # do corresponding movement selected from agent
+        start_pawn = None
+        starting_tile = str(agent_movement)[:2]
+        ending_tile = str(agent_movement)[2:4]
+        end_tile_component = None
+        start_tile_component = chess_board_map[starting_tile][0]
+        # print("\n\nstart_tile_component : ", start_tile_component, "\n\n")
+        for pawn in PAWNS_NAMES:
+            if pawn["piece_square"] == starting_tile:
+                start_pawn = pawn["component"]
+                print("FOUND!!!!!!")
+                break
+            if pawn["piece_square"] == ending_tile:
+                pawn["component"].visible = False
+        
+        for tile in chess_board_map:
+            # print("tile : ", tile)
+            if chess_board_map[tile][1] == chess_board_map[starting_tile][1]:
+                end_tile_component = chess_board_map[tile][0]
+        # print("Start Pawn : ", start_pawn.left," / " , start_pawn.top)
+        
+        place(start_pawn, end_tile_component, page)
+        PAWNS_NAMES[[l['component'] for l in PAWNS_NAMES].index(start_pawn)]["piece_square"] = ending_tile
+        
+        board.push(agent_movement)
+        print(board)
+        start_pawn.update()
+        start_tile_component.update()
+        end_tile_component.update()
     e.control.update()
     
     
@@ -205,7 +245,7 @@ def generate_grid(page, chess_board_map, board, sound_panels,  player_box1, play
             fit=ft.ImageFit.CONTAIN,
         ))
     
-        pawns.append(card)
+        PAWNS_NAMES.append({"component":card, "piece_name": "bP", "piece_type": "p", "piece_color": "b", "piece_square": f"{letters[i]}7"})
         
         card = ft.GestureDetector(
         mouse_cursor=ft.MouseCursor.MOVE,
@@ -221,7 +261,7 @@ def generate_grid(page, chess_board_map, board, sound_panels,  player_box1, play
             height=70,
             fit=ft.ImageFit.CONTAIN,
         ))
-        pawns.append(card)
+        PAWNS_NAMES.append({"component":card, "piece_name": f"b{black_parts[i]}", "piece_type": f"{black_parts[i].lower()}", "piece_color": "b", "piece_square": f"{letters[i]}8"})
         
         card = ft.GestureDetector(
         mouse_cursor=ft.MouseCursor.MOVE,
@@ -237,7 +277,7 @@ def generate_grid(page, chess_board_map, board, sound_panels,  player_box1, play
             height=70,
             fit=ft.ImageFit.CONTAIN,
         ))
-        pawns.append(card)
+        PAWNS_NAMES.append({"component":card, "piece_name": "wP", "piece_type": "p", "piece_color": "w", "piece_square": f"{letters[i]}2"})
         
         card = ft.GestureDetector(
         mouse_cursor=ft.MouseCursor.MOVE,
@@ -253,7 +293,7 @@ def generate_grid(page, chess_board_map, board, sound_panels,  player_box1, play
             height=70,
             fit=ft.ImageFit.CONTAIN,
         ))
-        pawns.append(card)
+        PAWNS_NAMES.append({"component":card, "piece_name": f"w{white_parts[i]}", "piece_type": f"{white_parts[i].lower()}", "piece_color": "w", "piece_square": f"{letters[i]}1"})
         
-    pawns = ft.Stack(controls=pawns, width=1920, height=1080)  
+    pawns = ft.Stack(controls=[pawn["component"] for pawn in PAWNS_NAMES], width=1920, height=1080)  
     return the_grid, pawns
