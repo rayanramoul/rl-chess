@@ -9,7 +9,7 @@ import settings
 
 import sys
 # caution: path[0] is reserved for script path (or '' in REPL)
-sys.path.insert(1, '/Users/rayansamyramoul/Documents/Github/Arcane-Chess/app/agent')
+sys.path.insert(1, '../../app/agent')
 
 from agent import Agent
 

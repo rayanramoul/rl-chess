@@ -2,7 +2,7 @@ import numpy as np
 import random
 import sys
 sys.path.insert(1, '/Users/rayansamyramoul/Documents/Github/Arcane-Chess/chess_environement/chess_environement/')
-from env import ChessEnv
+from chess_environement.env import ChessEnv
 
 
 env = ChessEnv()
@@ -12,10 +12,10 @@ gamma = 0.6
 epsilon = 0.1
 num_episodes = 1000
 
-# Initialize Q-table
-num_states = 64
-num_actions = 4096
-q_table = np.zeros((num_states, num_actions))
+# Initialize Q-Network
+agent = Agent(network='conv',gamma=0.1,lr=0.07)
+R = Q_learning(agent,board)
+
 
 # Training loop
 for episode in range(num_episodes):

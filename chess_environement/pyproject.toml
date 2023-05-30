@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chess_environement"
+version = "0.0.1"
+authors = [
+  { name="Rayan Samy Ramoul", email="raysamram@gmail.com" },
+]
+description = "Chess Gym Environement"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/rayanramoul/Arcane-Chess/"
