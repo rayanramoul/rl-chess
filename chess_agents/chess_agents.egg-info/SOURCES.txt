@@ -1,0 +1,8 @@
+pyproject.toml
+setup.py
+chess_agents/deep_q_agent.py
+chess_agents/random_agent.py
+chess_agents.egg-info/PKG-INFO
+chess_agents.egg-info/SOURCES.txt
+chess_agents.egg-info/dependency_links.txt
+chess_agents.egg-info/top_level.txt

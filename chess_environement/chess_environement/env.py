@@ -1,6 +1,38 @@
 import gym
 from gym import spaces
 import chess
+import numpy as np
+chess_dict = {
+    'p' : [1,0,0,0,0,0,0,0,0,0,0,0],
+    'P' : [0,0,0,0,0,0,1,0,0,0,0,0],
+    'n' : [0,1,0,0,0,0,0,0,0,0,0,0],
+    'N' : [0,0,0,0,0,0,0,1,0,0,0,0],
+    'b' : [0,0,1,0,0,0,0,0,0,0,0,0],
+    'B' : [0,0,0,0,0,0,0,0,1,0,0,0],
+    'r' : [0,0,0,1,0,0,0,0,0,0,0,0],
+    'R' : [0,0,0,0,0,0,0,0,0,1,0,0],
+    'q' : [0,0,0,0,1,0,0,0,0,0,0,0],
+    'Q' : [0,0,0,0,0,0,0,0,0,0,1,0],
+    'k' : [0,0,0,0,0,1,0,0,0,0,0,0],
+    'K' : [0,0,0,0,0,0,0,0,0,0,0,1],
+    '.' : [0,0,0,0,0,0,0,0,0,0,0,0],
+}
+
+value_dict = {
+    'p': [1, 0],
+    'P': [0, 1],
+    'n': [3, 0],
+    'N': [0, 3],
+    'b': [3, 0],
+    'B': [0, 3],
+    'r': [5, 0],
+    'R': [0, 5],
+    'q': [9, 0],
+    'Q': [0, 9],
+    'k': [0, 0],
+    'K': [0, 0],
+    '.': [0, 0]
+}
 
 class ChessEnv(gym.Env):
     def __init__(self):
@@ -78,3 +110,25 @@ class ChessEnv(gym.Env):
         encoding = [0] * 6
         encoding[piece_types.index(piece.symbol().lower())] = 1
         return encoding
+    
+    
+    def translate_board(self):
+        return translate_board(self.board)
+
+
+def translate_board(board): 
+    pgn = board.epd()
+    foo = []  
+    pieces = pgn.split(" ", 1)[0]
+    rows = pieces.split("/")
+    for row in rows:
+        foo2 = []  
+        for thing in row:
+            if thing.isdigit():
+                for i in range(0, int(thing)):
+                    foo2.append(chess_dict['.'])
+            else:
+                foo2.append(chess_dict[thing])
+        foo.append(foo2)
+    return np.array(foo)
+  
