@@ -100,6 +100,7 @@ class ChessEnv(gym.Env):
 
     def _action_to_move(self, action):
         # Convert action index to a move
+        print(f"\n\nAAAAAA\n\n")
         moves = list(self.board.legal_moves)
         move = moves[action]
         return move
