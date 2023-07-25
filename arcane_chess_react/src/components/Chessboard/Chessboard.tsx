@@ -1,6 +1,6 @@
 import './Chessboard.scss';
 import Tile from '../Tile/Tile';
-
+import { useRef } from 'react';
 const horizontalAxis = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const verticalAxis = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
@@ -37,7 +37,15 @@ for (let i = 0; i < 8; i++) {
     pieces.push({ image: "assets/w"+order_of_pieces[i]+".png", x: i, y: 7, number: i+7 });
 }
 
-function grabPiece(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+
+
+
+function Chessboard() {
+  let board = [];
+  const chessboardRef = useRef(null);
+
+
+  function grabPiece(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
     console.log(e.target);
     const target = e.target as HTMLDivElement;
     if (target.classList.contains('chess-piece-image')) {
@@ -49,12 +57,12 @@ function grabPiece(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         moveAt(e.pageX, e.pageY);
     
         function moveAt(pageX: number, pageY: number) {
-        target.style.left = pageX - shiftX + 'px';
-        target.style.top = pageY - shiftY + 'px';
+            target.style.left = pageX - shiftX + 'px';
+            target.style.top = pageY - shiftY + 'px';
         }
     
         function onMouseMove(e: MouseEvent) {
-        moveAt(e.pageX, e.pageY);
+            moveAt(e.pageX, e.pageY);
         }
     
         document.addEventListener('mousemove', onMouseMove);
@@ -64,11 +72,8 @@ function grabPiece(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         target.onmouseup = null;
         };
     }
-}
+    }
 
-
-function Chessboard() {
-  let board = [];
   pieces.forEach((piece) => {
     board.push(<Tile key={`${piece.x},${piece.y}`} x={piece.x} y={piece.y} number={piece.number} image={piece.image} />);
   });
@@ -76,7 +81,7 @@ function Chessboard() {
 
 
   return (
-    <div id="chessboard" onMouseDown={e => grabPiece(e)}>
+    <div id="chessboard" onMouseDown={e => grabPiece(e)} ref={chessboardRef}>
       {board}
     </div>
   );
