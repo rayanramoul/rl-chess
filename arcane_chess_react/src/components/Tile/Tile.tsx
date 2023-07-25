@@ -9,7 +9,7 @@ interface Props {
 
 export default function Tile({number, image, x = '', y = ''}: Props)
 {
-    const piece = (image === '') ? '' : (<img className="chess-piece-image" src={image}/>)
+    const piece = (image === '') ? '' : (<div className="chess-piece-image" style={{backgroundImage: `url(${image})`}}></div>)
     if((number)%2==0)
     {   return (<span className="tile black-tile">{piece}{x}{y}</span>); }
     else

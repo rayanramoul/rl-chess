@@ -37,6 +37,35 @@ for (let i = 0; i < 8; i++) {
     pieces.push({ image: "assets/w"+order_of_pieces[i]+".png", x: i, y: 7, number: i+7 });
 }
 
+function grabPiece(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+    console.log(e.target);
+    const target = e.target as HTMLDivElement;
+    if (target.classList.contains('chess-piece-image')) {
+        target.style.position = 'absolute';
+        target.style.zIndex = '1000';
+        const shiftX = e.clientX - target.getBoundingClientRect().left;
+        const shiftY = e.clientY - target.getBoundingClientRect().top;
+    
+        moveAt(e.pageX, e.pageY);
+    
+        function moveAt(pageX: number, pageY: number) {
+        target.style.left = pageX - shiftX + 'px';
+        target.style.top = pageY - shiftY + 'px';
+        }
+    
+        function onMouseMove(e: MouseEvent) {
+        moveAt(e.pageX, e.pageY);
+        }
+    
+        document.addEventListener('mousemove', onMouseMove);
+    
+        target.onmouseup = function () {
+        document.removeEventListener('mousemove', onMouseMove);
+        target.onmouseup = null;
+        };
+    }
+}
+
 
 function Chessboard() {
   let board = [];
@@ -44,8 +73,10 @@ function Chessboard() {
     board.push(<Tile key={`${piece.x},${piece.y}`} x={piece.x} y={piece.y} number={piece.number} image={piece.image} />);
   });
 
+
+
   return (
-    <div id="chessboard">
+    <div id="chessboard" onMouseDown={e => grabPiece(e)}>
       {board}
     </div>
   );
