@@ -3,7 +3,7 @@ import pygame
 from src.board import Board
 
 pygame.init()
-
+pygame.display.set_caption('Arcane Chess')
 WINDOW_SIZE = (600, 600)
 screen = pygame.display.set_mode(WINDOW_SIZE)
 
