@@ -12,7 +12,7 @@ from src.pieces.pawn import Pawn
 
 # Game state checker
 class Board:
-    def __init__(self, width, height, agent, agent_color="black"):
+    def __init__(self, width, height, agent="random", agent_color="black"):
         self.width = width
         self.height = height
         self.tile_width = width // 8
@@ -48,7 +48,8 @@ class Board:
         self.setup_board()
         self.agent_color = agent_color
         self.agent = agent
-        self.agent.initialize()
+        if not isinstance(self.agent, str):
+            self.agent.initialize()
 
     def generate_squares(self):
         output = []
@@ -131,10 +132,17 @@ class Board:
         legal_moves = list(self.board.legal_moves)
         if self.agent_color == 'white':
             white_moves = [move for move in legal_moves if self.board.piece_at(move.from_square).color == chess.WHITE]
-            move = self.agent.get_move(self.board, white_moves)
+            if self.agent == 'random':
+                move = random.choice(white_moves)
+            else:
+                move = self.agent.choose_movement(self.board, white_moves)                
         else:
             black_moves = [move for move in legal_moves if self.board.piece_at(move.from_square).color == chess.BLACK]        
-            move = random.choice(black_moves)
+            
+            if self.agent == 'random':
+                move = random.choice(black_moves)
+            else:
+                move = self.agent.choose_movement(self.board, black_moves)
         self.board.push(move)
         self.turn = 'white' if self.turn == 'black' else 'black'
         self.selected_piece = None

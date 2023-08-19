@@ -14,6 +14,7 @@ parser.add_argument('--agent_color', type=str, default='black', help='The color 
 args = parser.parse_args()
 
 # Initialize the agent
+agent = 'random'
 if args.agent != 'random':
 	agent = pickle.load(open(args.agent, 'rb'))
 
