@@ -28,8 +28,9 @@ class Square:
     # get the formal notation of the tile
     def get_coord(self):
         columns = 'abcdefgh'
-        return columns[self.x] + str(self.y + 1)
-
+        # return columns[self.x] + str(self.y + 1)
+        return columns[self.x] + str(8 - self.y)
+        
     def draw(self, display):
         # configures if tile should be light or dark or highlighted tile
         if self.highlight:

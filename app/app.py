@@ -27,11 +27,14 @@ if __name__ == '__main__':
        			# If the mouse is clicked
 				if event.button == 1:
 					board.handle_click(mx, my)
+		if board.turn == 'black':
+			board.agent_move()
 		if board.is_in_checkmate('black'): # If black is in checkmate
 			print('White wins!')
 			running = False
 		elif board.is_in_checkmate('white'): # If white is in checkmate
 			print('Black wins!')
 			running = False
+		
 		# Draw the board
 		draw(screen)

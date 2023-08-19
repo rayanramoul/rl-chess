@@ -1,6 +1,7 @@
 # /* Board.py
-
+import random
 import pygame
+import chess
 from src.square import Square
 from src.pieces.rook import Rook
 from src.pieces.bishop import Bishop
@@ -28,7 +29,22 @@ class Board:
             ['wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP'],
             ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR'],
         ]
+        self.equivalences = {
+            'r': 'bR',
+            'n': 'bN',
+            'b': 'bB',
+            'q': 'bQ',
+            'k': 'bK',
+            'p': 'bP',
+            'R': 'wR',
+            'N': 'wN',
+            'B': 'wB',
+            'Q': 'wQ',  
+            'K': 'wK',
+            'P': 'wP',
+        }
         self.squares = self.generate_squares()
+        self.board = None
         self.setup_board()
 
     def generate_squares(self):
@@ -49,6 +65,9 @@ class Board:
         return self.get_square_from_pos(pos).occupying_piece
     
     def setup_board(self):
+        # Create a Chess board object
+        self.board = chess.Board()
+        print(f"\n\nboard : {self.board}\n\n")
         for y, row in enumerate(self.config):
             for x, piece in enumerate(row):
                 if piece != '':
@@ -83,16 +102,72 @@ class Board:
         x = mx // self.tile_width
         y = my // self.tile_height
         clicked_square = self.get_square_from_pos((x, y))
+        clicked_square_coord = clicked_square.get_coord()
+        if self.selected_piece:
+            selected_piece_coord = self.selected_piece.get_coord()
+        
         if self.selected_piece is None:
             if clicked_square.occupying_piece is not None:
                 if clicked_square.occupying_piece.color == self.turn:
                     self.selected_piece = clicked_square.occupying_piece
+                    print("Handle Click Scenarios : 1")
+                    
         elif self.selected_piece.move(self, clicked_square):
             self.turn = 'white' if self.turn == 'black' else 'black'
+            print("Handle Click Scenarios : 2")
+            print("\n\nclicked_square : ", clicked_square_coord)
+            print("selected_piece : ", selected_piece_coord)
+            move = chess.Move.from_uci(f"{selected_piece_coord}{clicked_square_coord}")
+            print("Pushing ! : ", move)
+            self.board.push(move)
+            
         elif clicked_square.occupying_piece is not None:
             if clicked_square.occupying_piece.color == self.turn:
                 self.selected_piece = clicked_square.occupying_piece
+                print("Handle Click Scenarios : 3")
+                move = chess.Move.from_uci(f"{selected_piece_coord}{clicked_square_coord}")
+                print("Pushing ! : ", move)
+                self.board.push(move)
+                
+        
+        print(f"\n\nboard : \n{self.board}\n\n")
     
+    def agent_move(self):
+        # get a random move :
+        legal_moves = list(self.board.legal_moves)
+        black_moves = [move for move in legal_moves if self.board.piece_at(move.from_square).color == chess.BLACK]
+        
+        move = random.choice(black_moves)
+        print("\n\nAgent Move : ", move)
+        self.board.push(move)
+        self.turn = 'white' if self.turn == 'black' else 'black'
+        self.selected_piece = None
+        print(f"board : \n{self.board}\n\n")
+        
+        # Do the move on the visual board
+        
+        # get the piece from the move
+        print("Move from : ", move.from_square)  
+        print("Move to : ", move.to_square)
+        
+        # remove square from original square
+        # get the piece from the move
+        
+        
+        
+        piece = self.get_piece_from_pos((move.from_square % 8, 7 - move.from_square // 8))
+        # get the square from the move  
+        square = self.get_square_from_pos((move.to_square % 8, 7 - move.to_square  // 8))
+        # move the piece to the square
+        square.occupying_piece = piece
+        # remove the piece from the old square
+        # piece.square.occupying_piece = None
+        # update the piece square
+        piece.square = square
+        
+        square = self.get_square_from_pos((move.from_square % 8, 7 - move.from_square // 8))
+        square.occupying_piece = None
+        
     def is_in_check(self, color, board_change=None): # board_change = [(x1, y1), (x2, y2)]
         output = False
         king_pos = None
