@@ -15,8 +15,10 @@ num_episodes = 1000
 epsilon = epsilon_start
 MAX_ITERATIONS_NUMBER = 100000
 
+NUMBER_OF_ACTIONS = len(env.list_of_moves)
+
 # Initialize Q-Network
-agent = DeepQAgent() # network='conv',gamma=0.1,lr=0.07)
+agent = DeepQAgent(number_of_actions=NUMBER_OF_ACTIONS) # network='conv',gamma=0.1,lr=0.07)
 
 # Training loop
 for episode in range(num_episodes):
@@ -27,10 +29,11 @@ for episode in range(num_episodes):
         
         # Epsilon-greedy exploration strategy
         if random.uniform(0, 1) < epsilon:
-            action = agent.explore(env) # env.action_space.sample()  # Explore
+            move, action = agent.explore(env) # env.action_space.sample()  # Explore
         else:
-            action = agent.exploit(env) # np.argmax(q_table[state])  # Exploit
+            move, action = agent.exploit(env) # np.argmax(q_table[state])  # Exploit
 
+        print("chosen action : ", action)
         next_state, reward, done, _ = env.step(action)
 
         # Train the agent

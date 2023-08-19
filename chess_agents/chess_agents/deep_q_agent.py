@@ -120,7 +120,7 @@ def filter_legal_moves(board,logits):
 
 
 class DeepQAgent(nn.Module):
-    def __init__(self, model=None, gamma=0.9, lr=0.001):
+    def __init__(self, model=None, gamma=0.9, lr=0.001, number_of_actions=None):
         super(DeepQAgent, self).__init__()
         self.gamma = gamma
 
@@ -134,6 +134,8 @@ class DeepQAgent(nn.Module):
         self.actions_history = []
         self.rewards_history = []
         self.states_history = []
+        self.number_of_actions = number_of_actions
+        self.create_q_model()
 
     def create_q_model(self):
         # Network defined by the Deepmind paper
@@ -145,7 +147,7 @@ class DeepQAgent(nn.Module):
             nn.Conv2d(128, 256, kernel_size=2, stride=2),
             nn.ReLU(),
             nn.Flatten(),
-            nn.Linear(4096, 4096),
+            nn.Linear(4096, self.number_of_actions),
             nn.Softmax(dim=1)
         )
 

@@ -37,7 +37,7 @@ value_dict = {
 class ChessEnv(gym.Env):
     def __init__(self):
         super(ChessEnv, self).__init__()
-
+        print("Really ?")
         # Define the observation space
         self.observation_space = spaces.Box(low=0, high=1, shape=(64,))  # 8x8 board representation
 
@@ -46,6 +46,9 @@ class ChessEnv(gym.Env):
 
         # Create a Chess board object
         self.board = chess.Board()
+        
+        self.list_of_moves = self._list_of_moves()
+        print("list of moves", len(self.list_of_moves))
 
     def reset(self):
         # Reset the board to the initial state
@@ -100,11 +103,26 @@ class ChessEnv(gym.Env):
 
     def _action_to_move(self, action):
         # Convert action index to a move
-        print(f"\n\nAAAAAA\n\n")
         moves = list(self.board.legal_moves)
         move = moves[action]
         return move
 
+    def _list_of_moves(self):
+        self.board_all_moves = []
+        letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+        for x in letters:
+            for y in range(1, 9):
+                for x1 in letters:
+                    for y1 in range(1, 9):
+                        self.board_all_moves.append(f"{x}{y}{x1}{y1}")
+        # add the promotion moves
+        for x in letters:
+            for y in [8, 1]:
+                for p in ['q', 'r', 'b', 'n']:
+                    diff_y = 1 if y == 1 else -1
+                    self.board_all_moves.append(f"{x}{y}{x}{diff_y}{p}")
+                        
+            
     def _encode_piece(self, piece):
         # Encode the piece type using a one-hot encoding
         piece_types = ['p', 'r', 'n', 'b', 'q', 'k']
