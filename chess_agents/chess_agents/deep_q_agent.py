@@ -120,10 +120,11 @@ def filter_legal_moves(board,logits):
 
 
 class DeepQAgent(nn.Module):
-    def __init__(self, model=None, gamma=0.9, lr=0.001, number_of_actions=None):
+    def __init__(self, model=None, gamma=0.9, lr=0.001, list_of_moves=None):
         super(DeepQAgent, self).__init__()
         self.gamma = gamma
-
+        self.number_of_actions = len(list_of_moves)
+        self.list_of_moves = list_of_moves
         if model:
             print('CUSTOM MODEL SET')
             self.model = model
@@ -134,24 +135,32 @@ class DeepQAgent(nn.Module):
         self.actions_history = []
         self.rewards_history = []
         self.states_history = []
-        self.number_of_actions = number_of_actions
-        self.create_q_model()
 
     def create_q_model(self):
         # Network defined by the Deepmind paper
+        print("Create Q Model with number of actions of {}".format(self.number_of_actions))
         return nn.Sequential(
-            nn.Conv2d(12, 64, kernel_size=2, stride=2),
+            nn.Conv2d(8, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Conv2d(64, 128, kernel_size=2, stride=2),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Conv2d(128, 256, kernel_size=2, stride=2),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Flatten(),
-            nn.Linear(4096, self.number_of_actions),
+            nn.Linear(1, 256),
+            nn.ReLU(),
+            nn.Linear(256, self.number_of_actions),
             nn.Softmax(dim=1)
         )
 
     def forward(self, x):
+        print("x : {}".format(x))
+        x = torch.tensor(x, dtype=torch.float)
+        print("shape x : {}".format(x.shape))
+        
         return self.model(x)
 
     def predict(self, env):
@@ -164,10 +173,14 @@ class DeepQAgent(nn.Module):
 
     def explore(self, env):
         # Modify this function to return valid action for your env
-        action_space = np.random.randn(4096)
-        action_space = filter_legal_moves(env.board, action_space)
-        action = np.argmax(action_space, axis=None)
-        move = num2move[action]
+        # get legal moves from board env and return random move
+        action_probs = self.forward(env.translate_board())
+        action_space = filter_legal_moves(env.board, action_probs[0].detach().numpy())
+        action = torch.argmax(torch.tensor(action_space), dim=None)
+        move = num2move[action.item()]
+        print("EXPLORE: ", move)
+        action = self.list_of_moves.index(str(move))
+        print("EXPLORATION ACTION: ", action)
         return move, action
 
     def exploit(self, env):
@@ -176,6 +189,8 @@ class DeepQAgent(nn.Module):
         action_space = filter_legal_moves(env.board, action_probs[0].detach().numpy())
         action = torch.argmax(torch.tensor(action_space), dim=None)
         move = num2move[action.item()]
+        print("EXPLOIT: ", move)
+        action = self.list_of_moves.index(move)
         return move, action
 
     def train(self, state, action, reward, next_state, done):

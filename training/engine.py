@@ -18,7 +18,7 @@ MAX_ITERATIONS_NUMBER = 100000
 NUMBER_OF_ACTIONS = len(env.list_of_moves)
 
 # Initialize Q-Network
-agent = DeepQAgent(number_of_actions=NUMBER_OF_ACTIONS) # network='conv',gamma=0.1,lr=0.07)
+agent = DeepQAgent(list_of_moves=env.list_of_moves) # network='conv',gamma=0.1,lr=0.07)
 
 # Training loop
 for episode in range(num_episodes):
@@ -34,7 +34,7 @@ for episode in range(num_episodes):
             move, action = agent.exploit(env) # np.argmax(q_table[state])  # Exploit
 
         print("chosen action : ", action)
-        next_state, reward, done, _ = env.step(action)
+        next_state, reward, done, _ = env.step(move)
 
         # Train the agent
         agent.train(state, action, reward, next_state, done)

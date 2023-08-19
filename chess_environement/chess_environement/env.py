@@ -59,10 +59,7 @@ class ChessEnv(gym.Env):
 
         return observation
 
-    def step(self, action):
-        # Convert the action to a move on the board
-        move = self._action_to_move(action)
-
+    def step(self, move):
         # Make the move on the board
         self.board.push(move)
 
@@ -121,7 +118,7 @@ class ChessEnv(gym.Env):
                 for p in ['q', 'r', 'b', 'n']:
                     diff_y = 1 if y == 1 else -1
                     self.board_all_moves.append(f"{x}{y}{x}{diff_y}{p}")
-                        
+        return self.board_all_moves
             
     def _encode_piece(self, piece):
         # Encode the piece type using a one-hot encoding
