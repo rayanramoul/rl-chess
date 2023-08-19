@@ -12,7 +12,7 @@ from src.pieces.pawn import Pawn
 
 # Game state checker
 class Board:
-    def __init__(self, width, height):
+    def __init__(self, width, height, agent, agent_color="black"):
         self.width = width
         self.height = height
         self.tile_width = width // 8
@@ -46,6 +46,9 @@ class Board:
         self.squares = self.generate_squares()
         self.board = None
         self.setup_board()
+        self.agent_color = agent_color
+        self.agent = agent
+        self.agent.initialize()
 
     def generate_squares(self):
         output = []
@@ -110,50 +113,32 @@ class Board:
             if clicked_square.occupying_piece is not None:
                 if clicked_square.occupying_piece.color == self.turn:
                     self.selected_piece = clicked_square.occupying_piece
-                    print("Handle Click Scenarios : 1")
                     
         elif self.selected_piece.move(self, clicked_square):
             self.turn = 'white' if self.turn == 'black' else 'black'
-            print("Handle Click Scenarios : 2")
-            print("\n\nclicked_square : ", clicked_square_coord)
-            print("selected_piece : ", selected_piece_coord)
             move = chess.Move.from_uci(f"{selected_piece_coord}{clicked_square_coord}")
-            print("Pushing ! : ", move)
             self.board.push(move)
             
         elif clicked_square.occupying_piece is not None:
             if clicked_square.occupying_piece.color == self.turn:
                 self.selected_piece = clicked_square.occupying_piece
-                print("Handle Click Scenarios : 3")
                 move = chess.Move.from_uci(f"{selected_piece_coord}{clicked_square_coord}")
-                print("Pushing ! : ", move)
-                self.board.push(move)
-                
-        
+                self.board.push(move)        
         print(f"\n\nboard : \n{self.board}\n\n")
     
     def agent_move(self):
         # get a random move :
         legal_moves = list(self.board.legal_moves)
-        black_moves = [move for move in legal_moves if self.board.piece_at(move.from_square).color == chess.BLACK]
-        
-        move = random.choice(black_moves)
-        print("\n\nAgent Move : ", move)
+        if self.agent_color == 'white':
+            white_moves = [move for move in legal_moves if self.board.piece_at(move.from_square).color == chess.WHITE]
+            move = self.agent.get_move(self.board, white_moves)
+        else:
+            black_moves = [move for move in legal_moves if self.board.piece_at(move.from_square).color == chess.BLACK]        
+            move = random.choice(black_moves)
         self.board.push(move)
         self.turn = 'white' if self.turn == 'black' else 'black'
         self.selected_piece = None
         print(f"board : \n{self.board}\n\n")
-        
-        # Do the move on the visual board
-        
-        # get the piece from the move
-        print("Move from : ", move.from_square)  
-        print("Move to : ", move.to_square)
-        
-        # remove square from original square
-        # get the piece from the move
-        
-        
         
         piece = self.get_piece_from_pos((move.from_square % 8, 7 - move.from_square // 8))
         # get the square from the move  
