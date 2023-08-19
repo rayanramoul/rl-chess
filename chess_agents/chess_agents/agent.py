@@ -6,7 +6,7 @@ class Agent:
     def __init__(self):
         # set seed random
         # random.seed(0)
-        print("\nAGENT CREATED\n")
+        pass
         
     def save_pickle_agent(self, path):
         pickle.dump(self, open(path, 'wb'))

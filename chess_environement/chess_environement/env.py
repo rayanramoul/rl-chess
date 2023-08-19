@@ -37,7 +37,6 @@ value_dict = {
 class ChessEnv(gym.Env):
     def __init__(self):
         super(ChessEnv, self).__init__()
-        print("Really ?")
         # Define the observation space
         self.observation_space = spaces.Box(low=0, high=1, shape=(64,))  # 8x8 board representation
 
@@ -48,7 +47,6 @@ class ChessEnv(gym.Env):
         self.board = chess.Board()
         
         self.list_of_moves = self._list_of_moves()
-        print("list of moves", len(self.list_of_moves))
 
     def reset(self):
         # Reset the board to the initial state
@@ -61,21 +59,20 @@ class ChessEnv(gym.Env):
 
     def step(self, move):
         # Make the move on the board
-        self.board.push(move)
-
-        # Convert the board position to an observation
-        observation = self._get_observation()
-
+        try:
+            self.board.push(move)
+            reward = self._get_reward()
+        except AssertionError:
+            # Illegal move
+            self.board.pop()
+            reward = -10
         # Get the reward and check if the game is over
-        reward = self._get_reward()
         done = self.board.is_game_over()
 
-
-        print("representation after cacl : ", self.translate_board().shape)
         return self.translate_board(), reward, done, {}
 
     def render(self, mode='human'):
-        print(self.board)
+        pass
 
     def _get_observation(self):
         # Convert the board position to a binary observation
@@ -96,9 +93,9 @@ class ChessEnv(gym.Env):
         if self.board.is_checkmate():
             return 1  # Win
         elif self.board.is_stalemate() or self.board.is_insufficient_material():
-            return 0.5  # Draw
+            return -1  # Draw
         else:
-            return 0  # No reward
+            return -1  # No reward
 
     def _action_to_move(self, action):
         # Convert action index to a move
@@ -113,13 +110,20 @@ class ChessEnv(gym.Env):
             for y in range(1, 9):
                 for x1 in letters:
                     for y1 in range(1, 9):
+                        if x == x1 and y == y1:
+                            continue
                         self.board_all_moves.append(f"{x}{y}{x1}{y1}")
         # add the promotion moves
         for x in letters:
             for y in [8, 1]:
                 for p in ['q', 'r', 'b', 'n']:
                     diff_y = 1 if y == 1 else -1
-                    self.board_all_moves.append(f"{x}{y}{x}{diff_y}{p}")
+                    self.board_all_moves.append(f"{x}{y}{x}{y+diff_y}{p}")
+        
+        # Save the legal moves in a txt file
+        with open('legal_moves.txt', 'w') as f:
+            for item in self.board_all_moves:
+                f.write("%s\n" % item)
         return self.board_all_moves
             
     def _encode_piece(self, piece):

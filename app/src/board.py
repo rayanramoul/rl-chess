@@ -71,7 +71,6 @@ class Board:
     def setup_board(self):
         # Create a Chess board object
         self.board = chess.Board()
-        print(f"\n\nboard : {self.board}\n\n")
         for y, row in enumerate(self.config):
             for x, piece in enumerate(row):
                 if piece != '':
@@ -125,7 +124,6 @@ class Board:
                 self.selected_piece = clicked_square.occupying_piece
                 move = chess.Move.from_uci(f"{selected_piece_coord}{clicked_square_coord}")
                 self.board.push(move)        
-        print(f"\n\nboard : \n{self.board}\n\n")
     
     def agent_move(self):
         # get a random move :
@@ -146,7 +144,6 @@ class Board:
         self.board.push(move)
         self.turn = 'white' if self.turn == 'black' else 'black'
         self.selected_piece = None
-        print(f"board : \n{self.board}\n\n")
         
         piece = self.get_piece_from_pos((move.from_square % 8, 7 - move.from_square // 8))
         # get the square from the move  

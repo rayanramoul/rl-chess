@@ -3,6 +3,8 @@ import random
 import sys
 from chess_environement.env import ChessEnv
 from chess_agents.deep_q_agent import DeepQAgent
+import chess
+import tqdm
 
 env = ChessEnv()
 # Q-learning parameters
@@ -21,7 +23,8 @@ NUMBER_OF_ACTIONS = len(env.list_of_moves)
 agent = DeepQAgent(list_of_moves=env.list_of_moves) # network='conv',gamma=0.1,lr=0.07)
 
 # Training loop
-for episode in range(num_episodes):
+for episode in tqdm.tqdm(range(num_episodes)):
+    print("Episode: ", episode)
     state = env.reset()
     done = False
     episode_reward = 0
@@ -29,15 +32,16 @@ for episode in range(num_episodes):
         
         # Epsilon-greedy exploration strategy
         if random.uniform(0, 1) < epsilon:
-            move, action = agent.explore(env) # env.action_space.sample()  # Explore
+            move_str, move_number = agent.explore(env) # env.action_space.sample()  # Explore
         else:
-            move, action = agent.exploit(env) # np.argmax(q_table[state])  # Exploit
-
-        print("chosen action : ", action)
-        next_state, reward, done, _ = env.step(move)
+            move_str, action = agent.exploit(env) # np.argmax(q_table[state])  # Exploit
+        
+        move_str = chess.Move.from_uci(move_str)
+        # print("Move: ", move_str)
+        next_state, reward, done, _ = env.step(move_str)
 
         # Train the agent
-        agent.train(state, action, reward, next_state, done)
+        agent.train(state, move_number, reward, next_state, done)
 
         state = next_state
         if done:
@@ -60,4 +64,3 @@ for _ in range(num_eval_episodes):
         total_rewards += reward
 
 average_reward = total_rewards / num_eval_episodes
-print("Average reward:", average_reward)
