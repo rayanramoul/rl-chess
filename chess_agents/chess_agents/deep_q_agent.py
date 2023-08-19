@@ -196,10 +196,16 @@ class DeepQAgent(nn.Module):
     def train(self, state, action, reward, next_state, done):
         target_q = reward
         if not done:
-            target_q += self.gamma * torch.max(self.forward(next_state))
+            processed_state = self.forward(next_state)
+            print("train processed_state: ", processed_state.shape)
+            target_q += self.gamma * torch.max(processed_state)
 
-        current_q = self.forward(state)[action]
-
+        print("train action: ", action)
+        current_q = self.forward(state)
+        print("train current q shape : ", current_q.shape)
+        current_q = current_q[:, action]
+        print("train current q shape : ", current_q.shape)
+        print("train target q shape : ", target_q.shape)
         loss = F.mse_loss(current_q, target_q)
         
         self.optimizer.zero_grad()

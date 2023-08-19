@@ -57,7 +57,7 @@ class ChessEnv(gym.Env):
         # Convert the board position to an observation
         observation = self._get_observation()
 
-        return observation
+        return self.translate_board()
 
     def step(self, move):
         # Make the move on the board
@@ -70,7 +70,9 @@ class ChessEnv(gym.Env):
         reward = self._get_reward()
         done = self.board.is_game_over()
 
-        return observation, reward, done, {}
+
+        print("representation after cacl : ", self.translate_board().shape)
+        return self.translate_board(), reward, done, {}
 
     def render(self, mode='human'):
         print(self.board)
