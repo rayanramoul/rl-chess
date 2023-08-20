@@ -1,6 +1,5 @@
 # /* Board.py
 import random
-import pygame
 import chess
 from src.square import Square
 from src.pieces.rook import Rook

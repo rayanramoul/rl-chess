@@ -62,6 +62,8 @@ def translate_move(move):
     return np.array([from_square,to_square])
 
 
+
+
 class DeepQAgent(nn.Module):
     def __init__(self, model=None, gamma=0.9, lr=0.001, list_of_moves=None):
         super(DeepQAgent, self).__init__()
@@ -77,7 +79,9 @@ class DeepQAgent(nn.Module):
         self.actions_history = []
         self.rewards_history = []
         self.states_history = []
-
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to(self.device)
+        
     def create_q_model(self):
         # Network defined by the Deepmind paper
         return nn.Sequential(
@@ -98,16 +102,15 @@ class DeepQAgent(nn.Module):
         )
 
     def forward(self, x):
-        x = torch.tensor(x, dtype=torch.float)
+        x = torch.tensor(x, dtype=torch.float).to(self.device)
         return self.model(x)
 
     def predict(self, env):
         state_tensor = torch.tensor(env.translate_board()).unsqueeze(0)
         action_probs = self.model(state_tensor)
-        action_space = filter_legal_moves(env.board, action_probs[0].detach().numpy())
-        action = torch.argmax(torch.tensor(action_space), dim=None)
-        move = self.list_of_moves[action.item()]
-        return move, action
+        move_number = torch.argmax(torch.tensor(action_probs), dim=None)
+        move = self.list_of_moves[move_number]
+        return move, move_number
 
     def explore(self, env):
         # Modify this function to return valid action for your env
