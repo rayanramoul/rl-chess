@@ -1,10 +1,19 @@
 import random
+from collections import namedtuple
+import pickle
+import os
+import copy
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+from torch.autograd import Variable
 import numpy as np
+
+Transition = namedtuple('Transition',
+                        ('state', 'action', 'next_state', 'reward'))
+
 
 chess_dict = {
     'p' : [1,0,0,0,0,0,0,0,0,0,0,0],
@@ -61,7 +70,25 @@ def translate_move(move):
     to_square = move.to_square
     return np.array([from_square,to_square])
 
+class ReplayMemory(object):
+    
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.memory = []
+        self.position = 0
 
+    def push(self, *args):
+        """Saves a transition."""
+        if len(self.memory) < self.capacity:
+            self.memory.append(None)
+        self.memory[self.position] = Transition(*args)
+        self.position = (self.position + 1) % self.capacity
+
+    def sample(self, batch_size):
+        return random.sample(self.memory, batch_size)
+
+    def __len__(self):
+        return len(self.memory)
 
 
 class DeepQAgent(nn.Module):
@@ -71,16 +98,23 @@ class DeepQAgent(nn.Module):
         self.number_of_actions = len(list_of_moves)
         self.list_of_moves = list_of_moves
         if model:
+            # Self Model is the Policy Network
             self.model = model
+            self.target_network = model.copy()
         else:
+            self.model = self.create_q_model()
             self.model = self.create_q_model()
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.actions_history = []
         self.rewards_history = []
         self.states_history = []
+        
+        self.memory = ReplayMemory(10000)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
+        self.BATCH_SIZE = 128
+        self.criterion = nn.MSELoss() # F.mse_loss
         
     def create_q_model(self):
         # Network defined by the Deepmind paper
@@ -126,24 +160,81 @@ class DeepQAgent(nn.Module):
         move_str = self.list_of_moves[move_number.item()]
         return move_str, move_number
 
-    def train(self, state, action, reward, next_state, done):
-        target_q = reward
-        # print("\nstate shape: ", state.shape)
-        # print("next state shape: ", next_state.shape)
-        if not done:
-            processed_state = self.forward(next_state)
-            # print("train processed_state: ", processed_state.shape)
-            target_q += torch.Tensor(self.gamma * torch.max(processed_state))
+    def optimize_model(self):
+        """
+        Fonction effectuant les étapes de mise à jour du réseau ( sampling des épisodes, calcul de loss, rétro propagation )
+        """
+        # Si la taille actuelle de notre mémoire est inférieure aux batchs de mémoires qu'on veut prendre en compte on n'effectue
+        # Pas encore d'optimization
+        if len(self.memory) < self.BATCH_SIZE:
+            return
 
-        # print("train action: ", action)
-        current_q = self.forward(state)
-        # print("train current q shape : ", current_q.shape)
-        current_q = current_q[:, action]
-        # print("train current q shape : ", current_q.shape)
-        target_q = torch.Tensor([target_q])
-        # print("train target q shape : ", target_q)
-        loss = F.mse_loss(current_q, target_q)
+        # Extraction d'un echantillon aléatoire de la mémoire ( ou chaque éléments est constitué de (état, nouvel état, action, récompense) )
+        # Et ce pour éviter le biais occurant si on apprenait sur des états successifs
+        transitions = self.memory.sample(self.BATCH_SIZE)
+        batch = Transition(*zip(*transitions))
         
+        # Séparation des différents éléments contenus dans les différents echantillons
+        non_final_mask = torch.Tensor(tuple(map(lambda s: s is not None, batch.next_state))).bool()
+        next_states = [s for s in batch.next_state if s is not None]
+        non_final_next_states = Variable(torch.cat(next_states), 
+                                         volatile=True).type(torch.Tensor)
+        
+        state_batch = Variable(torch.cat(batch.state)).type(torch.Tensor)
+        if self.device == 'cuda': # use_cuda:
+            state_batch = state_batch.cuda()
+        action_batch = Variable(torch.LongTensor(batch.action).view(-1,1)).type(torch.LongTensor)
+        reward_batch = Variable(torch.FloatTensor(batch.reward).view(-1,1)).type(torch.Tensor)
+
+
+        # Passage des états par le Q-Network ( en calculate Q(s_t, a) ) et on récupére les actions sélectionnées
+        state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+
+        # Calcul de V(s_{t+1}) pour les prochain états.
+        next_state_values = Variable(torch.zeros(self.BATCH_SIZE, 1).type(torch.Tensor)) 
+
+        if self.device == 'cuda':
+            non_final_next_states = non_final_next_states.cuda()
+        
+        # Appel au second Q-Network ( celui de copie pour garantir la stabilité de l'apprentissage )
+        d = self.target_net(non_final_next_states) 
+        next_state_values[non_final_mask] = d.max(1)[0].view(-1,1)
+        next_state_values.volatile = False
+
+        # On calcule les valeurs de fonctions Q attendues ( en faisant appel aux récompenses attribuées )
+        expected_state_action_values = (next_state_values * self.GAMMA) + reward_batch
+
+        # Calcul de la loss
+        loss = self.criterion(state_action_values, expected_state_action_values)
+
+        # Rétro-propagation
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        
+    def update_target_network(self):
+        self.target_net = copy.deepcopy(self.model)  
+    
+    def train(self, state, move_number, reward, next_state, done):
+        """
+        Train the agent network
+        """
+        target_q = reward
+        if not done:
+            processed_state = self.forward(next_state)
+            target_q += torch.Tensor(self.gamma * torch.max(processed_state))
+
+        current_q = self.forward(state)
+        current_q = current_q[:, move_number]
+        target_q = torch.Tensor([target_q])
+        # loss = F.mse_loss(current_q, target_q)
+        
+        self.memory.push(state, int(move_number), next_state, reward)
+        self.optimize_model()
+        
+    def save(self, folder_path:str):
+        torch.save(self.model.state_dict(), os.path.join(folder_path, 'model.pth'))
+
+        # pickle save self
+        pickle.dump(self, open(os.path.join(folder_path, 'deep_q_agent.pickle'), 'wb'))
+        
