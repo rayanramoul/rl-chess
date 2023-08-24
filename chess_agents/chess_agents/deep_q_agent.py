@@ -117,7 +117,13 @@ class DeepQAgent(nn.Module):
         self.criterion = nn.MSELoss() # F.mse_loss
         
     def create_q_model(self):
+        """
+        
+        Input shape is of shape [1, 8, 8, 1]
+        or [batch_dim, height(of the chess board), width(of the chess booard), channels]
+        """
         # Network defined by the Deepmind paper
+        """
         return nn.Sequential(
             nn.Conv2d(8, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
@@ -133,10 +139,23 @@ class DeepQAgent(nn.Module):
             nn.ReLU(),
             nn.Linear(256, self.number_of_actions),
             nn.Softmax(dim=1)
+        )"""
+        return nn.Sequential(
+            nn.Conv2d(in_channels=1, out_channels=8, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(in_channels=8, out_channels=32, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Flatten(),
+            nn.Linear(in_features=2 * 2, out_features=64),
+            nn.ReLU(),
+            nn.Linear(in_features=64, out_features=self.number_of_actions),
+            nn.Softmax(dim=1)
         )
 
     def forward(self, x):
-        x = torch.tensor(x, dtype=torch.float).to(self.device)
+        x = torch.tensor(x, dtype=torch.float).to(self.device).unsqueeze(0)
         return self.model(x)
 
     def predict(self, env):
@@ -155,9 +174,15 @@ class DeepQAgent(nn.Module):
 
     def exploit(self, env):
         # Modify this function to return valid action for your env
-        action_probs = self.forward(env.translate_board())
-        move_number = torch.argmax(torch.tensor(action_probs), dim=None)
-        move_str = self.list_of_moves[move_number.item()]
+        state = env.translate_board()
+        print("Exploitation state shape : ", state.shape)
+        action_probs = self.forward(state)
+        print("Self model: \n", self.model)
+        print("Action probs: \n", action_probs.shape)
+        move_number = torch.argmax(torch.tensor(action_probs), dim=0)
+        print("Move number: ", move_number)
+        print("Len list of moves : ", len(self.list_of_moves))
+        move_str = self.list_of_moves[move_number]
         return move_str, move_number
 
     def optimize_model(self):
@@ -180,7 +205,19 @@ class DeepQAgent(nn.Module):
         non_final_next_states = Variable(torch.cat(next_states), 
                                          volatile=True).type(torch.Tensor)
         
-        state_batch = Variable(torch.cat(batch.state)).type(torch.Tensor)
+        batch_state = [s for s in batch.state if s is not None]
+        # print("batch state : ", batch_state)
+        batch_state = [torch.tensor(s, dtype=torch.float).unsqueeze(0) for s in batch_state]
+        # print("State batch before cat : ", batch_state.shape)
+        print("len set state batch : ", len(batch.state))
+        
+        
+        state_batch = Variable(torch.cat(batch_state, dim=0)).type(torch.Tensor)
+        # swap dim 0 and 3 of state_batch
+        # state_batch = torch.view_as_real(state_batch)
+        print("State batch after cat : ", state_batch.shape)
+        state_batch = state_batch.reshape(128, 1, 8, 8)
+        print("State batch after RESHAPE : ", state_batch.shape)
         if self.device == 'cuda': # use_cuda:
             state_batch = state_batch.cuda()
         action_batch = Variable(torch.LongTensor(batch.action).view(-1,1)).type(torch.LongTensor)
@@ -188,7 +225,7 @@ class DeepQAgent(nn.Module):
 
 
         # Passage des états par le Q-Network ( en calculate Q(s_t, a) ) et on récupére les actions sélectionnées
-        state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+        state_action_values = self.model(state_batch).gather(1, action_batch)
 
         # Calcul de V(s_{t+1}) pour les prochain états.
         next_state_values = Variable(torch.zeros(self.BATCH_SIZE, 1).type(torch.Tensor)) 
@@ -229,7 +266,7 @@ class DeepQAgent(nn.Module):
         target_q = torch.Tensor([target_q])
         # loss = F.mse_loss(current_q, target_q)
         
-        self.memory.push(state, int(move_number), next_state, reward)
+        self.memory.push(torch.Tensor(state), int(move_number), torch.Tensor(next_state), reward)
         self.optimize_model()
         
     def save(self, folder_path:str):

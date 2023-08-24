@@ -68,8 +68,9 @@ class ChessEnv(gym.Env):
             reward = -10
         # Get the reward and check if the game is over
         done = self.board.is_game_over()
-
-        return self.translate_board(), reward, done, {}
+        state = self.translate_board()
+        print("Step state shape : ", state.shape)
+        return state, reward, done, {}
 
     def render(self, mode='human'):
         pass
@@ -137,7 +138,7 @@ class ChessEnv(gym.Env):
     def translate_board(self):
         return translate_board(self.board)
 
-
+"""
 def translate_board(board): 
     pgn = board.epd()
     foo = []  
@@ -153,4 +154,27 @@ def translate_board(board):
                 foo2.append(chess_dict[thing])
         foo.append(foo2)
     return np.array(foo)
-  
+""" 
+
+def translate_board(board):
+    numerical_board = [[0] * 8 for _ in range(8)]  # Initialize an 8x8 grid with zeros
+    
+    piece_values = {
+        chess.PAWN: 1,
+        chess.KNIGHT: 3,
+        chess.BISHOP: 3,
+        chess.ROOK: 5,
+        chess.QUEEN: 9,
+        chess.KING: 0  # Assigning 0 for simplicity, but you can assign a value if needed
+    }
+    
+    for square in chess.SQUARES:
+        piece = board.piece_at(square)
+        if piece is not None:
+            piece_value = piece_values[piece.piece_type]
+            if piece.color == chess.BLACK:
+                piece_value = -piece_value  # Invert value for black pieces
+            rank, file = chess.square_rank(square), chess.square_file(square)
+            numerical_board[7 - rank][file] = piece_value
+    
+    return np.array(numerical_board)
