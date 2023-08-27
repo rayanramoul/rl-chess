@@ -103,7 +103,7 @@ class DeepQAgent(nn.Module):
             self.target_network = model.copy()
         else:
             self.model = self.create_q_model()
-            self.model = self.create_q_model()
+            self.target_network = self.create_q_model()
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.actions_history = []
@@ -141,14 +141,8 @@ class DeepQAgent(nn.Module):
             nn.Softmax(dim=1)
         )"""
         return nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=8, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(in_channels=8, out_channels=32, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),
             nn.Flatten(),
-            nn.Linear(in_features=2 * 2, out_features=64),
+            nn.Linear(in_features=8 * 8, out_features=64),
             nn.ReLU(),
             nn.Linear(in_features=64, out_features=self.number_of_actions),
             nn.Softmax(dim=1)
@@ -234,7 +228,7 @@ class DeepQAgent(nn.Module):
             non_final_next_states = non_final_next_states.cuda()
         
         # Appel au second Q-Network ( celui de copie pour garantir la stabilité de l'apprentissage )
-        d = self.target_net(non_final_next_states) 
+        d = self.target_network(non_final_next_states) 
         next_state_values[non_final_mask] = d.max(1)[0].view(-1,1)
         next_state_values.volatile = False
 
@@ -250,7 +244,7 @@ class DeepQAgent(nn.Module):
         self.optimizer.step()
         
     def update_target_network(self):
-        self.target_net = copy.deepcopy(self.model)  
+        self.target_network = copy.deepcopy(self.model)  
     
     def train(self, state, move_number, reward, next_state, done):
         """
