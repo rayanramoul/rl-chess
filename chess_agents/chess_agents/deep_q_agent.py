@@ -114,6 +114,8 @@ class DeepQAgent(nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
         self.BATCH_SIZE = 128
+        self.GAMMA = 0.900
+        self.EPS = 1
         self.criterion = nn.MSELoss() # F.mse_loss
         
     def create_q_model(self):
@@ -169,13 +171,13 @@ class DeepQAgent(nn.Module):
     def exploit(self, env):
         # Modify this function to return valid action for your env
         state = env.translate_board()
-        print("Exploitation state shape : ", state.shape)
+        # print("\n\nExploitation state shape : ", state.shape)
         action_probs = self.forward(state)
-        print("Self model: \n", self.model)
-        print("Action probs: \n", action_probs.shape)
-        move_number = torch.argmax(torch.tensor(action_probs), dim=0)
-        print("Move number: ", move_number)
-        print("Len list of moves : ", len(self.list_of_moves))
+        # print("Self model: \n", self.model)
+        # print("Action probs: ", action_probs.shape)
+        move_number = torch.argmax(action_probs.clone().detach()[0], dim=0)
+        # print("Move number: ", move_number)
+        # print("Len list of moves : ", len(self.list_of_moves))
         move_str = self.list_of_moves[move_number]
         return move_str, move_number
 
@@ -203,15 +205,15 @@ class DeepQAgent(nn.Module):
         # print("batch state : ", batch_state)
         batch_state = [torch.tensor(s, dtype=torch.float).unsqueeze(0) for s in batch_state]
         # print("State batch before cat : ", batch_state.shape)
-        print("len set state batch : ", len(batch.state))
+        # print("len set state batch : ", len(batch.state))
         
         
         state_batch = Variable(torch.cat(batch_state, dim=0)).type(torch.Tensor)
         # swap dim 0 and 3 of state_batch
         # state_batch = torch.view_as_real(state_batch)
-        print("State batch after cat : ", state_batch.shape)
+        # print("State batch after cat : ", state_batch.shape)
         state_batch = state_batch.reshape(128, 1, 8, 8)
-        print("State batch after RESHAPE : ", state_batch.shape)
+        # print("State batch after RESHAPE : ", state_batch.shape)
         if self.device == 'cuda': # use_cuda:
             state_batch = state_batch.cuda()
         action_batch = Variable(torch.LongTensor(batch.action).view(-1,1)).type(torch.LongTensor)
@@ -228,6 +230,9 @@ class DeepQAgent(nn.Module):
             non_final_next_states = non_final_next_states.cuda()
         
         # Appel au second Q-Network ( celui de copie pour garantir la stabilité de l'apprentissage )
+        # print("non final next states : ", non_final_next_states.shape)
+        non_final_next_states = non_final_next_states.reshape(128, 1, 8, 8)
+        # print("NEW non final next states : ", non_final_next_states.shape)
         d = self.target_network(non_final_next_states) 
         next_state_values[non_final_mask] = d.max(1)[0].view(-1,1)
         next_state_values.volatile = False
@@ -262,8 +267,11 @@ class DeepQAgent(nn.Module):
         
         self.memory.push(torch.Tensor(state), int(move_number), torch.Tensor(next_state), reward)
         self.optimize_model()
-        
-    def save(self, folder_path:str):
+
+
+    def save_pickle_agent(self, folder_path:str):
+        if not os.path.isdir(folder_path):
+            os.makedirs(folder_path)
         torch.save(self.model.state_dict(), os.path.join(folder_path, 'model.pth'))
 
         # pickle save self
