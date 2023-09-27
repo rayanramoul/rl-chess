@@ -48,8 +48,10 @@ class Board:
         self.agent_color = agent_color
         self.agent = agent
         if not isinstance(self.agent, str):
-            self.agent.initialize()
-
+            try:
+                self.agent.initialize()
+            except AttributeError:
+                print("Agent has no initialize method")
     def generate_squares(self):
         output = []
         for y in range(8):
@@ -132,14 +134,14 @@ class Board:
             if self.agent == 'random':
                 move = random.choice(white_moves)
             else:
-                move = self.agent.choose_movement(self.board, white_moves)                
+                move = self.agent.predict(self.board)                
         else:
             black_moves = [move for move in legal_moves if self.board.piece_at(move.from_square).color == chess.BLACK]        
             
             if self.agent == 'random':
                 move = random.choice(black_moves)
             else:
-                move = self.agent.choose_movement(self.board, black_moves)
+                move = self.agent.predict(self.board)
         self.board.push(move)
         self.turn = 'white' if self.turn == 'black' else 'black'
         self.selected_piece = None

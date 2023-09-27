@@ -1,51 +1,55 @@
-import gym
-from gym import spaces
 import chess
+import gym
 import numpy as np
+from gym import spaces
+
 chess_dict = {
-    'p' : [1,0,0,0,0,0,0,0,0,0,0,0],
-    'P' : [0,0,0,0,0,0,1,0,0,0,0,0],
-    'n' : [0,1,0,0,0,0,0,0,0,0,0,0],
-    'N' : [0,0,0,0,0,0,0,1,0,0,0,0],
-    'b' : [0,0,1,0,0,0,0,0,0,0,0,0],
-    'B' : [0,0,0,0,0,0,0,0,1,0,0,0],
-    'r' : [0,0,0,1,0,0,0,0,0,0,0,0],
-    'R' : [0,0,0,0,0,0,0,0,0,1,0,0],
-    'q' : [0,0,0,0,1,0,0,0,0,0,0,0],
-    'Q' : [0,0,0,0,0,0,0,0,0,0,1,0],
-    'k' : [0,0,0,0,0,1,0,0,0,0,0,0],
-    'K' : [0,0,0,0,0,0,0,0,0,0,0,1],
-    '.' : [0,0,0,0,0,0,0,0,0,0,0,0],
+    "p": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "P": [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    "n": [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "N": [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+    "b": [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "B": [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+    "r": [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+    "R": [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+    "q": [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    "Q": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+    "k": [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    "K": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    ".": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 }
 
 value_dict = {
-    'p': [1, 0],
-    'P': [0, 1],
-    'n': [3, 0],
-    'N': [0, 3],
-    'b': [3, 0],
-    'B': [0, 3],
-    'r': [5, 0],
-    'R': [0, 5],
-    'q': [9, 0],
-    'Q': [0, 9],
-    'k': [0, 0],
-    'K': [0, 0],
-    '.': [0, 0]
+    "p": [1, 0],
+    "P": [0, 1],
+    "n": [3, 0],
+    "N": [0, 3],
+    "b": [3, 0],
+    "B": [0, 3],
+    "r": [5, 0],
+    "R": [0, 5],
+    "q": [9, 0],
+    "Q": [0, 9],
+    "k": [0, 0],
+    "K": [0, 0],
+    ".": [0, 0],
 }
+
 
 class ChessEnv(gym.Env):
     def __init__(self):
         super(ChessEnv, self).__init__()
         # Define the observation space
-        self.observation_space = spaces.Box(low=0, high=1, shape=(64,))  # 8x8 board representation
+        self.observation_space = spaces.Box(
+            low=0, high=1, shape=(64,)
+        )  # 8x8 board representation
 
         # Define the action space
         self.action_space = spaces.Discrete(4096)  # 64*64 possible moves
 
         # Create a Chess board object
         self.board = chess.Board()
-        
+
         self.list_of_moves = self._list_of_moves()
 
     def reset(self):
@@ -69,10 +73,10 @@ class ChessEnv(gym.Env):
         # Get the reward and check if the game is over
         done = self.board.is_game_over()
         state = self.translate_board()
-        print("Step state shape : ", state.shape)
+        # print("Step state shape : ", state.shape)
         return state, reward, done, {}
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         pass
 
     def _get_observation(self):
@@ -106,7 +110,7 @@ class ChessEnv(gym.Env):
 
     def _list_of_moves(self):
         self.board_all_moves = []
-        letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+        letters = ["a", "b", "c", "d", "e", "f", "g", "h"]
         for x in letters:
             for y in range(1, 9):
                 for x1 in letters:
@@ -117,26 +121,26 @@ class ChessEnv(gym.Env):
         # add the promotion moves
         for x in letters:
             for y in [8, 1]:
-                for p in ['q', 'r', 'b', 'n']:
+                for p in ["q", "r", "b", "n"]:
                     diff_y = 1 if y == 1 else -1
                     self.board_all_moves.append(f"{x}{y}{x}{y+diff_y}{p}")
-        
+
         # Save the legal moves in a txt file
-        with open('legal_moves.txt', 'w') as f:
+        with open("legal_moves.txt", "w") as f:
             for item in self.board_all_moves:
                 f.write("%s\n" % item)
         return self.board_all_moves
-            
+
     def _encode_piece(self, piece):
         # Encode the piece type using a one-hot encoding
-        piece_types = ['p', 'r', 'n', 'b', 'q', 'k']
+        piece_types = ["p", "r", "n", "b", "q", "k"]
         encoding = [0] * 6
         encoding[piece_types.index(piece.symbol().lower())] = 1
         return encoding
-    
-    
+
     def translate_board(self):
         return translate_board(self.board)
+
 
 """
 def translate_board(board): 
@@ -154,20 +158,21 @@ def translate_board(board):
                 foo2.append(chess_dict[thing])
         foo.append(foo2)
     return np.array(foo)
-""" 
+"""
+
 
 def translate_board(board):
     numerical_board = [[0] * 8 for _ in range(8)]  # Initialize an 8x8 grid with zeros
-    
+
     piece_values = {
         chess.PAWN: 1,
         chess.KNIGHT: 3,
         chess.BISHOP: 3,
         chess.ROOK: 5,
         chess.QUEEN: 9,
-        chess.KING: 0  # Assigning 0 for simplicity, but you can assign a value if needed
+        chess.KING: 0,  # Assigning 0 for simplicity, but you can assign a value if needed
     }
-    
+
     for square in chess.SQUARES:
         piece = board.piece_at(square)
         if piece is not None:
@@ -176,5 +181,6 @@ def translate_board(board):
                 piece_value = -piece_value  # Invert value for black pieces
             rank, file = chess.square_rank(square), chess.square_file(square)
             numerical_board[7 - rank][file] = piece_value
-    
+
     return np.array(numerical_board)
+
