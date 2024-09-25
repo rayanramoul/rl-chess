@@ -1,3 +1,4 @@
+from loguru import logger
 import chess
 import gym
 import numpy as np
@@ -50,48 +51,74 @@ class ChessEnv(gym.Env):
         # Create a Chess board object
         self.board = chess.Board()
 
-        self.list_of_moves = self._list_of_moves()
+        self.all_possibles_moves_list = self.all_possible_moves()
+        logger.debug(f"Total possible moves: {self.all_possibles_moves_list}")
+
+    @property
+    def number_of_possible_moves(self):
+        return len(self.all_possibles_moves_list)
 
     def reset(self):
         # Reset the board to the initial state
         self.board.reset()
 
-        # Convert the board position to an observation
-        observation = self._get_observation()
-
         return self.translate_board()
 
-    def step(self, move):
-        # Make the move on the board
-        try:
-            self.board.push(move)
-            reward = self._get_reward()
-        except AssertionError:
-            # Illegal move
-            self.board.pop()
-            reward = -10
-        # Get the reward and check if the game is over
+    @property
+    def state(self):
+        return self.translate_board()
+
+    def move_str_to_index(self, move):
+        logger.debug(f"Move: {dir(move)}")
+        logger.debug(f"Move string : {move}")
+        return self.all_possibles_moves_list[str(move)]
+
+    def move_index_to_str(self, move):
+        logger.debug(f"Move index: {move}")
+        if isinstance(move, tuple):
+            move = move[1]
+        return list(self.all_possibles_moves_list.keys())[move]
+
+    # def step(self, move):
+    #     # Make the move on the board
+    #     try:
+    #         self.board.push(move)
+    #         reward = self._get_reward()
+    #     except AssertionError:
+    #         # Illegal move
+    #         self.board.pop()
+    #         reward = -10
+    #     # Get the reward and check if the game is over
+    #     done = self.board.is_game_over()
+    #     state = self.translate_board()
+    #     # print("Step state shape : ", state.shape)
+    #     return state, reward, done, {}
+    #
+    def step(self, action):
+        logger.debug(f"Action: {action}")
+
+        self.board.push(chess.Move.from_uci(action))
+        next_state = self.translate_board()
+        reward = self._get_reward()
         done = self.board.is_game_over()
-        state = self.translate_board()
-        # print("Step state shape : ", state.shape)
-        return state, reward, done, {}
+        return next_state, reward, done
 
     def render(self, mode="human"):
         pass
 
-    def _get_observation(self):
-        # Convert the board position to a binary observation
-        observation = []
-
-        for square in chess.SQUARES:
-            piece = self.board.piece_at(square)
-            if piece is not None:
-                observation.append(1)  # Piece present
-                observation.extend(self._encode_piece(piece))
-            else:
-                observation.append(0)  # Empty square
-
-        return observation
+    # def _get_observation(self):
+    #     # Convert the board position to a binary observation
+    #     observation = []
+    #
+    #     for square in chess.SQUARES:
+    #         piece = self.board.piece_at(square)
+    #         if piece is not None:
+    #             observation.append(1)  # Piece present
+    #             observation.extend(self._encode_piece(piece))
+    #         else:
+    #             observation.append(0)  # Empty square
+    #
+    #     return observation
 
     def _get_reward(self):
         # Simple reward function example
@@ -108,7 +135,13 @@ class ChessEnv(gym.Env):
         move = moves[action]
         return move
 
-    def _list_of_moves(self):
+    @property
+    def available_moves(self):
+        available_moves = list(self.board.legal_moves)
+        logger.debug(f"Available moves: {available_moves}")
+        return available_moves
+
+    def all_possible_moves(self):
         self.board_all_moves = []
         letters = ["a", "b", "c", "d", "e", "f", "g", "h"]
         for x in letters:
@@ -129,6 +162,9 @@ class ChessEnv(gym.Env):
         with open("legal_moves.txt", "w") as f:
             for item in self.board_all_moves:
                 f.write("%s\n" % item)
+
+        # create dictionary of all possible moves with unique index
+        self.board_all_moves = {move: i for i, move in enumerate(self.board_all_moves)}
         return self.board_all_moves
 
     def _encode_piece(self, piece):
@@ -140,25 +176,6 @@ class ChessEnv(gym.Env):
 
     def translate_board(self):
         return translate_board(self.board)
-
-
-"""
-def translate_board(board): 
-    pgn = board.epd()
-    foo = []  
-    pieces = pgn.split(" ", 1)[0]
-    rows = pieces.split("/")
-    for row in rows:
-        foo2 = []  
-        for thing in row:
-            if thing.isdigit():
-                for i in range(0, int(thing)):
-                    foo2.append(chess_dict['.'])
-            else:
-                foo2.append(chess_dict[thing])
-        foo.append(foo2)
-    return np.array(foo)
-"""
 
 
 def translate_board(board):
@@ -183,4 +200,3 @@ def translate_board(board):
             numerical_board[7 - rank][file] = piece_value
 
     return np.array(numerical_board)
-

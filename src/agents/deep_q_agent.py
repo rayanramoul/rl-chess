@@ -4,8 +4,12 @@ import pickle
 import random
 from collections import namedtuple
 
-import lightning as pl
+# import overrides
+from typing import List, override
+
 import numpy as np
+from loguru import logger
+import gym
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -84,25 +88,41 @@ class ReplayMemory:
         self.position = (self.position + 1) % self.capacity
 
     def sample(self, batch_size):
+        logger.debug(f"Memory: {self.memory}")
+        logger.debug(f"Batch size: {batch_size}")
         return random.sample(self.memory, batch_size)
 
     def __len__(self):
         return len(self.memory)
 
 
-# DeepQAgent class converted to PyTorch Lightning module
-class DeepQAgent(pl.LightningModule):
-    def __init__(self, model=None, gamma=0.9, lr=0.001, list_of_moves=None):
+class DeepQAgent(torch.nn.Module):
+    def __init__(
+        self,
+        model=None,
+        gamma=0.9,
+        lr=0.001,
+        batch_size=8,
+        number_of_actions: int = 8,
+        number_episodes: int = 10,
+        replay_memory_size: int = 10000,
+        optimize_every_n_steps: int = 10,
+    ) -> None:
         super(DeepQAgent, self).__init__()
         self.gamma = gamma
-        self.number_of_actions = len(list_of_moves)
-        self.list_of_moves = list_of_moves
+        self.number_of_actions = number_of_actions
         self.model = model if model else self.create_q_model()
         self.target_network = copy.deepcopy(self.model)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.memory = ReplayMemory(10000)
-        self.BATCH_SIZE = 128
+        self.BATCH_SIZE = batch_size
+        self.NUMBER_EPISODES = number_episodes
+        self.REPLAY_MEMORY_SIZE = replay_memory_size
+        self.OPTIMIZE_EVERY_N_STEPS = optimize_every_n_steps
+        assert self.BATCH_SIZE <= self.REPLAY_MEMORY_SIZE
+        assert self.BATCH_SIZE <= self.OPTIMIZE_EVERY_N_STEPS
         self.criterion = nn.MSELoss()
+        self.device = "cpu"
         self.model.to(self.device)
 
     def create_q_model(self):
@@ -114,9 +134,24 @@ class DeepQAgent(pl.LightningModule):
             nn.Softmax(dim=1),
         )
 
-    def forward(self, x):
+    def forward(self, x, env=None):
         x = torch.tensor(x, dtype=torch.float).to(self.device).unsqueeze(0)
-        return self.model(x)
+        y = self.model(x)
+        # if available_moves is not None, we argmax on the available moves
+        if env:
+            available_moves = env.all_possible_moves()
+            dict_moves = env.all_possibles_moves_list
+            index_feasible_moves = [dict_moves[move] for move in available_moves]
+            index_non_feasible_moves = [
+                i
+                for i in range(self.number_of_actions)
+                if i not in index_feasible_moves
+            ]
+            # set the non feasible indexes to zero in the output
+            y[:][index_non_feasible_moves] = 0
+
+        # return argmax of the available
+        return y
 
     def predict(self, env):
         state_tensor = torch.tensor(env.translate_board()).unsqueeze(0)
@@ -126,16 +161,16 @@ class DeepQAgent(pl.LightningModule):
         return move, move_number
 
     def explore(self, env):
-        move_number = random.randint(0, len(self.list_of_moves) - 1)
-        move_str = self.list_of_moves[move_number]
-        return move_str, move_number
+        logger.debug(f"EXPLORE: Random move from {env.available_moves}")
+        return random.choice(env.available_moves)
 
     def exploit(self, env):
+        logger.debug(f"EXPLOIT: Best move from {env.available_moves}")
         state = env.translate_board()
-        action_probs = self.forward(state)
-        move_number = torch.argmax(action_probs[0], dim=0).item()
-        move_str = self.list_of_moves[move_number]
-        return move_str, move_number
+        action_probs = self.forward(state, env)
+        move_idx = torch.argmax(action_probs[0], dim=0).item()
+        move_str = env.move_index_to_str(move_idx)
+        return move_str, move_idx
 
     def optimize_model(self):
         if len(self.memory) < self.BATCH_SIZE:
@@ -193,3 +228,29 @@ class DeepQAgent(pl.LightningModule):
         torch.save(self.model.state_dict(), os.path.join(folder_path, "model.pth"))
         with open(os.path.join(folder_path, "deep_q_agent.pickle"), "wb") as f:
             pickle.dump(self, f)
+
+    def fit(self, env: gym.Env) -> None:
+        replay_memory = ReplayMemory(self.REPLAY_MEMORY_SIZE)
+        metrics = {"episode": [], "loss_episode": [], "average_reward_episode": []}
+        for episode_idx in range(self.NUMBER_EPISODES):
+            self.board = env.reset()
+            epsilon = random.uniform(0, 1)
+            if epsilon < self.gamma:
+                move_str = self.explore(env)
+                move_idx = env.move_str_to_index(move_str)
+            else:
+                move_idx = self.exploit(env)
+                move_str = env.move_index_to_str(move_idx)
+
+            state = env.translate_board()
+
+            # do the action in the environment
+            next_state, reward, done = env.step(move_str)
+            next_state = env.translate_board()
+
+            # store the transition in the replay memory
+            replay_memory.push(state, move_idx, reward, next_state)
+
+            # optimize the model
+            if episode_idx > 1 and episode_idx % self.OPTIMIZE_EVERY_N_STEPS == 0:
+                self.training_step(replay_memory.sample(self.BATCH_SIZE), episode_idx)
