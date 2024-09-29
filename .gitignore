@@ -8,3 +8,5 @@
 *egg*
 *.venv*
 *runs*
+*hydra_logs*
+*outputs*

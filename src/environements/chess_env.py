@@ -1,8 +1,9 @@
 from loguru import logger
 import chess
-import gym
+
+# import gym
 import numpy as np
-from gym import spaces
+# from gym import spaces
 
 chess_dict = {
     "p": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -37,22 +38,25 @@ value_dict = {
 }
 
 
-class ChessEnv(gym.Env):
-    def __init__(self):
+class ChessEnv:
+    def __init__(self, env_name="ChessEnv"):
         super(ChessEnv, self).__init__()
         # Define the observation space
-        self.observation_space = spaces.Box(
-            low=0, high=1, shape=(64,)
-        )  # 8x8 board representation
-
+        # self.observation_space = spaces.Box(
+        #     low=0, high=1, shape=(64,)
+        # )  # 8x8 board representation
+        #
+        self.env_name = env_name
         # Define the action space
-        self.action_space = spaces.Discrete(4096)  # 64*64 possible moves
+        # self.action_space = spaces.Discrete(4096)  # 64*64 possible moves
 
         # Create a Chess board object
         self.board = chess.Board()
 
         self.all_possibles_moves_list = self.all_possible_moves()
-        logger.debug(f"Total possible moves: {self.all_possibles_moves_list}")
+        self.inversed_all_possibles_moves_list = {
+            v: k for k, v in self.all_possibles_moves_list.items()
+        }
 
     @property
     def number_of_possible_moves(self):
@@ -69,15 +73,12 @@ class ChessEnv(gym.Env):
         return self.translate_board()
 
     def move_str_to_index(self, move):
-        logger.debug(f"Move: {dir(move)}")
-        logger.debug(f"Move string : {move}")
         return self.all_possibles_moves_list[str(move)]
 
     def move_index_to_str(self, move):
-        logger.debug(f"Move index: {move}")
         if isinstance(move, tuple):
-            move = move[1]
-        return list(self.all_possibles_moves_list.keys())[move]
+            move = move[0]
+        return self.inversed_all_possibles_moves_list[move]
 
     # def step(self, move):
     #     # Make the move on the board
@@ -91,16 +92,17 @@ class ChessEnv(gym.Env):
     #     # Get the reward and check if the game is over
     #     done = self.board.is_game_over()
     #     state = self.translate_board()
-    #     # print("Step state shape : ", state.shape)
     #     return state, reward, done, {}
-    #
-    def step(self, action):
-        logger.debug(f"Action: {action}")
 
-        self.board.push(chess.Move.from_uci(action))
+    def step(self, action):
+        if not isinstance(action, chess.Move):
+            action = chess.Move.from_uci(action)
+        self.board.push(action)
         next_state = self.translate_board()
         reward = self._get_reward()
-        done = self.board.is_game_over()
+        done = (
+            self.board.is_game_over()
+        )  # self.board.outcome(claim_draw=True) is not None
         return next_state, reward, done
 
     def render(self, mode="human"):
@@ -138,7 +140,6 @@ class ChessEnv(gym.Env):
     @property
     def available_moves(self):
         available_moves = list(self.board.legal_moves)
-        logger.debug(f"Available moves: {available_moves}")
         return available_moves
 
     def all_possible_moves(self):
@@ -153,10 +154,12 @@ class ChessEnv(gym.Env):
                         self.board_all_moves.append(f"{x}{y}{x1}{y1}")
         # add the promotion moves
         for x in letters:
-            for y in [8, 1]:
-                for p in ["q", "r", "b", "n"]:
-                    diff_y = 1 if y == 1 else -1
-                    self.board_all_moves.append(f"{x}{y}{x}{y+diff_y}{p}")
+            for x2 in letters:
+                for y in [8, 1]:
+                    for p in ["q", "r", "b", "n", "q"]:
+                        diff_y = 1 if y == 1 else -1
+                        self.board_all_moves.append(f"{x}{y}{x2}{y+diff_y}{p}")
+                        self.board_all_moves.append(f"{x}{y+diff_y}{x2}{y}{p}")
 
         # Save the legal moves in a txt file
         with open("legal_moves.txt", "w") as f:

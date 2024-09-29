@@ -1,0 +1,6 @@
+gamma: 0.9
+lr: 0.001
+batch_size: 8
+number_episodes: 100
+replay_memory_size: 10000
+optimize_every_n_steps: 10

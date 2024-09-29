@@ -3,6 +3,7 @@ import os
 import pickle
 import random
 from collections import namedtuple
+from rich.progress import track
 
 # import overrides
 from typing import List, override
@@ -17,7 +18,9 @@ from torch.autograd import Variable
 from torch.utils.tensorboard import SummaryWriter
 
 # Constants
-Transition = namedtuple("Transition", ("state", "action", "next_state", "reward"))
+Transition = namedtuple(
+    "Transition", ("state", "action", "next_state", "reward", "done")
+)
 CHESS_DICT = {
     "p": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     "P": [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
@@ -88,8 +91,6 @@ class ReplayMemory:
         self.position = (self.position + 1) % self.capacity
 
     def sample(self, batch_size):
-        logger.debug(f"Memory: {self.memory}")
-        logger.debug(f"Batch size: {batch_size}")
         return random.sample(self.memory, batch_size)
 
     def __len__(self):
@@ -139,16 +140,16 @@ class DeepQAgent(torch.nn.Module):
         y = self.model(x)
         # if available_moves is not None, we argmax on the available moves
         if env:
-            available_moves = env.all_possible_moves()
+            available_moves = env.available_moves
             dict_moves = env.all_possibles_moves_list
-            index_feasible_moves = [dict_moves[move] for move in available_moves]
+            index_feasible_moves = [dict_moves[str(move)] for move in available_moves]
             index_non_feasible_moves = [
                 i
                 for i in range(self.number_of_actions)
                 if i not in index_feasible_moves
             ]
             # set the non feasible indexes to zero in the output
-            y[:][index_non_feasible_moves] = 0
+            y[:, index_non_feasible_moves] = 0
 
         # return argmax of the available
         return y
@@ -161,11 +162,9 @@ class DeepQAgent(torch.nn.Module):
         return move, move_number
 
     def explore(self, env):
-        logger.debug(f"EXPLORE: Random move from {env.available_moves}")
         return random.choice(env.available_moves)
 
     def exploit(self, env):
-        logger.debug(f"EXPLOIT: Best move from {env.available_moves}")
         state = env.translate_board()
         action_probs = self.forward(state, env)
         move_idx = torch.argmax(action_probs[0], dim=0).item()
@@ -213,11 +212,7 @@ class DeepQAgent(torch.nn.Module):
         self.target_network.load_state_dict(self.model.state_dict())
 
     def training_step(self, batch, batch_idx):
-        state, action, reward, next_state, done = batch
-        self.memory.push(state, action, reward, next_state)
         self.optimize_model()
-        if done:
-            self.update_target_network()
 
     def configure_optimizers(self):
         return self.optimizer
@@ -232,25 +227,33 @@ class DeepQAgent(torch.nn.Module):
     def fit(self, env: gym.Env) -> None:
         replay_memory = ReplayMemory(self.REPLAY_MEMORY_SIZE)
         metrics = {"episode": [], "loss_episode": [], "average_reward_episode": []}
-        for episode_idx in range(self.NUMBER_EPISODES):
+        for episode_idx in track(
+            range(self.NUMBER_EPISODES), description="Training Episode"
+        ):
+            finished_game = False
             self.board = env.reset()
-            epsilon = random.uniform(0, 1)
-            if epsilon < self.gamma:
-                move_str = self.explore(env)
-                move_idx = env.move_str_to_index(move_str)
-            else:
-                move_idx = self.exploit(env)
-                move_str = env.move_index_to_str(move_idx)
+            while not finished_game:
+                epsilon = random.uniform(0, 1)
+                if epsilon < self.gamma:
+                    move_str = self.explore(env)
+                    move_idx = env.move_str_to_index(move_str)
+                else:
+                    move_str, move_idx = self.exploit(env)
 
-            state = env.translate_board()
+                state = env.translate_board()
 
-            # do the action in the environment
-            next_state, reward, done = env.step(move_str)
-            next_state = env.translate_board()
+                # do the action in the environment
+                next_state, reward, done = env.step(move_str)
 
-            # store the transition in the replay memory
-            replay_memory.push(state, move_idx, reward, next_state)
+                # print differences between the 2 matrices
+                # assert (state != next_state).any(), "No action was made"
 
-            # optimize the model
-            if episode_idx > 1 and episode_idx % self.OPTIMIZE_EVERY_N_STEPS == 0:
-                self.training_step(replay_memory.sample(self.BATCH_SIZE), episode_idx)
+                # store the transition in the replay memory
+                replay_memory.push(state, move_idx, reward, next_state, done)
+
+                # optimize the model
+                if episode_idx > 1 and episode_idx % self.OPTIMIZE_EVERY_N_STEPS == 0:
+                    self.training_step(
+                        replay_memory.sample(self.BATCH_SIZE), episode_idx
+                    )
+                finished_game = done
