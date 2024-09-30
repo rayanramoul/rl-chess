@@ -22,17 +22,17 @@ class Piece:
 
     # get the formal notation of the tile
     def get_coord(self):
-        columns = 'abcdefgh'
+        columns = "abcdefgh"
         # return columns[self.x] + str(self.y + 1)
         return columns[self.x] + str(8 - self.y)
-    
+
     def get_valid_moves(self, board):
         output = []
         for square in self.get_moves(board):
             if not board.is_in_check(self.color, board_change=[self.pos, square.pos]):
                 output.append(square)
         return output
-    
+
     def move(self, board, square, force=False):
         for i in board.squares:
             i.highlight = False
@@ -44,16 +44,13 @@ class Piece:
             board.selected_piece = None
             self.has_moved = True
             # Pawn promotion
-            if self.notation == ' ':
+            if self.notation == " ":
                 if self.y == 0 or self.y == 7:
                     from src.pieces.queen import Queen
-                    square.occupying_piece = Queen(
-                        (self.x, self.y),
-                        self.color,
-                        board
-                    )
+
+                    square.occupying_piece = Queen((self.x, self.y), self.color, board)
             # Move rook if king castles
-            if self.notation == 'K':
+            if self.notation == "K":
                 if prev_square.x - self.x == 2:
                     rook = board.get_piece_from_pos((0, self.y))
                     rook.move(board, board.get_square_from_pos((3, self.y)), force=True)

@@ -1,9 +1,7 @@
 from loguru import logger
 import chess
 
-# import gym
 import numpy as np
-# from gym import spaces
 
 chess_dict = {
     "p": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -41,14 +39,7 @@ value_dict = {
 class ChessEnv:
     def __init__(self, env_name="ChessEnv"):
         super(ChessEnv, self).__init__()
-        # Define the observation space
-        # self.observation_space = spaces.Box(
-        #     low=0, high=1, shape=(64,)
-        # )  # 8x8 board representation
-        #
         self.env_name = env_name
-        # Define the action space
-        # self.action_space = spaces.Discrete(4096)  # 64*64 possible moves
 
         # Create a Chess board object
         self.board = chess.Board()
@@ -80,20 +71,6 @@ class ChessEnv:
             move = move[0]
         return self.inversed_all_possibles_moves_list[move]
 
-    # def step(self, move):
-    #     # Make the move on the board
-    #     try:
-    #         self.board.push(move)
-    #         reward = self._get_reward()
-    #     except AssertionError:
-    #         # Illegal move
-    #         self.board.pop()
-    #         reward = -10
-    #     # Get the reward and check if the game is over
-    #     done = self.board.is_game_over()
-    #     state = self.translate_board()
-    #     return state, reward, done, {}
-
     def step(self, action):
         if not isinstance(action, chess.Move):
             action = chess.Move.from_uci(action)
@@ -108,22 +85,9 @@ class ChessEnv:
     def render(self, mode="human"):
         pass
 
-    # def _get_observation(self):
-    #     # Convert the board position to a binary observation
-    #     observation = []
-    #
-    #     for square in chess.SQUARES:
-    #         piece = self.board.piece_at(square)
-    #         if piece is not None:
-    #             observation.append(1)  # Piece present
-    #             observation.extend(self._encode_piece(piece))
-    #         else:
-    #             observation.append(0)  # Empty square
-    #
-    #     return observation
-
     def _get_reward(self):
         # Simple reward function example
+        # TODO: implment a real reward based on the winning side
         if self.board.is_checkmate():
             return 1  # Win
         elif self.board.is_stalemate() or self.board.is_insufficient_material():

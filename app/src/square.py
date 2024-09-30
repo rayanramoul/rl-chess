@@ -1,6 +1,7 @@
 # /* Square.py
 import pygame
 
+
 # Tile creator
 class Square:
     def __init__(self, x, y, width, height):
@@ -12,25 +13,24 @@ class Square:
         self.abs_y = y * height
         self.abs_pos = (self.abs_x, self.abs_y)
         self.pos = (x, y)
-        self.color = 'light' if (x + y) % 2 == 0 else 'dark'
-        self.draw_color = (220, 208, 194) if self.color == 'light' else (204, 139, 33)
-        self.highlight_color = (117, 201, 79) # (100, 249, 83) if self.color == 'light' else (0, 228, 10)
+        self.color = "light" if (x + y) % 2 == 0 else "dark"
+        self.draw_color = (220, 208, 194) if self.color == "light" else (204, 139, 33)
+        self.highlight_color = (
+            117,
+            201,
+            79,
+        )  # (100, 249, 83) if self.color == 'light' else (0, 228, 10)
         self.occupying_piece = None
         self.coord = self.get_coord()
         self.highlight = False
-        self.rect = pygame.Rect(
-            self.abs_x,
-            self.abs_y,
-            self.width,
-            self.height
-        )
+        self.rect = pygame.Rect(self.abs_x, self.abs_y, self.width, self.height)
 
     # get the formal notation of the tile
     def get_coord(self):
-        columns = 'abcdefgh'
+        columns = "abcdefgh"
         # return columns[self.x] + str(self.y + 1)
         return columns[self.x] + str(8 - self.y)
-        
+
     def draw(self, display):
         # configures if tile should be light or dark or highlighted tile
         if self.highlight:

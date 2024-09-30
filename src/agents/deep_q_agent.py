@@ -16,10 +16,11 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.tensorboard import SummaryWriter
+import wandb
 
 # Constants
 Transition = namedtuple(
-    "Transition", ("state", "action", "next_state", "reward", "done")
+    "Transition", ("state", "action", "reward", "next_state", "done")
 )
 CHESS_DICT = {
     "p": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -120,6 +121,16 @@ class DeepQAgent(torch.nn.Module):
         self.NUMBER_EPISODES = number_episodes
         self.REPLAY_MEMORY_SIZE = replay_memory_size
         self.OPTIMIZE_EVERY_N_STEPS = optimize_every_n_steps
+        self.LEARNING_RATE = lr
+        self.config = {
+            "gamma": self.gamma,
+            "lr": self.LEARNING_RATE,
+            "batch_size": self.BATCH_SIZE,
+            "number_of_actions": self.number_of_actions,
+            "number_episodes": self.NUMBER_EPISODES,
+            "replay_memory_size": self.REPLAY_MEMORY_SIZE,
+            "optimize_every_n_steps": self.OPTIMIZE_EVERY_N_STEPS,
+        }
         assert self.BATCH_SIZE <= self.REPLAY_MEMORY_SIZE
         assert self.BATCH_SIZE <= self.OPTIMIZE_EVERY_N_STEPS
         self.criterion = nn.MSELoss()
@@ -182,6 +193,9 @@ class DeepQAgent(torch.nn.Module):
             tuple(map(lambda s: s is not None, batch.next_state)), dtype=torch.bool
         )
         next_states = [s for s in batch.next_state if s is not None]
+        logger.info(
+            f"next_states: {len(next_states)} elements of shape {next_states[0].shape}"
+        )
         non_final_next_states = (
             torch.cat(next_states).view(-1, 8, 8).unsqueeze(1).to(self.device)
         )
@@ -203,16 +217,19 @@ class DeepQAgent(torch.nn.Module):
         loss = self.criterion(
             state_action_values, expected_state_action_values.unsqueeze(1)
         )
+        logger.info(f"loss: {loss.item()}")
+        stored_loss_value = loss.item()
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        return stored_loss
 
     def update_target_network(self):
         self.target_network.load_state_dict(self.model.state_dict())
 
     def training_step(self, batch, batch_idx):
-        self.optimize_model()
+        return self.optimize_model()
 
     def configure_optimizers(self):
         return self.optimizer
@@ -225,13 +242,20 @@ class DeepQAgent(torch.nn.Module):
             pickle.dump(self, f)
 
     def fit(self, env: gym.Env) -> None:
-        replay_memory = ReplayMemory(self.REPLAY_MEMORY_SIZE)
-        metrics = {"episode": [], "loss_episode": [], "average_reward_episode": []}
+        self.memory = ReplayMemory(self.REPLAY_MEMORY_SIZE)
+        wandb.init(project="chess-rl", config=self.config)
+        metrics = {
+            "episode": [],
+            "average_reward_episode": [],
+            "average_episode_length": [],
+        }
         for episode_idx in track(
             range(self.NUMBER_EPISODES), description="Training Episode"
         ):
             finished_game = False
             self.board = env.reset()
+            episode_rewards = []
+            episode_length = 0
             while not finished_game:
                 epsilon = random.uniform(0, 1)
                 if epsilon < self.gamma:
@@ -245,15 +269,33 @@ class DeepQAgent(torch.nn.Module):
                 # do the action in the environment
                 next_state, reward, done = env.step(move_str)
 
-                # print differences between the 2 matrices
-                # assert (state != next_state).any(), "No action was made"
-
                 # store the transition in the replay memory
-                replay_memory.push(state, move_idx, reward, next_state, done)
+                self.memory.push(state, move_idx, reward, next_state, done)
 
                 # optimize the model
                 if episode_idx > 1 and episode_idx % self.OPTIMIZE_EVERY_N_STEPS == 0:
-                    self.training_step(
-                        replay_memory.sample(self.BATCH_SIZE), episode_idx
+                    loss = self.training_step(
+                        self.memory.sample(self.BATCH_SIZE), episode_idx
                     )
+                    wandb.log({"loss": loss})
+                    logger.info(f"loss: {loss}")
                 finished_game = done
+                episode_rewards.append(reward)
+                episode_length += 1
+
+            # Update metrics at the end of each episode
+            metrics["episode"].append(episode_idx)
+            metrics["average_reward_episode"].append(np.mean(episode_rewards))
+            metrics["average_episode_length"].append(episode_length)
+
+            # Log metrics to wandb
+            wandb.log(
+                {
+                    "episode": episode_idx,
+                    "average_reward": np.mean(episode_rewards),
+                    "episode_length": episode_length,
+                }
+            )
+
+        # Finish the wandb run
+        wandb.finish()
