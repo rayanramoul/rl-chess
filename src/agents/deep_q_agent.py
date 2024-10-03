@@ -20,7 +20,7 @@ import wandb
 
 # Constants
 Transition = namedtuple(
-    "Transition", ("state", "action", "reward", "next_state", "done")
+    "Transition", ("state", "action", "reward", "next_state", "done", "player")
 )
 CHESS_DICT = {
     "p": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -98,6 +98,28 @@ class ReplayMemory:
         return len(self.memory)
 
 
+class DeepQNetwork(nn.Module):
+    def __init__(self, input_channels, action_space):
+        super(DeepQNetwork, self).__init__()
+        self.conv1 = nn.Conv2d(input_channels, 32, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+
+        # Calculate the size of the flattened output from conv layers
+        self.fc_input_dim = 64 * 8 * 8
+
+        self.fc1 = nn.Linear(self.fc_input_dim, 512)
+        self.fc2 = nn.Linear(512, action_space)
+
+    def forward(self, x):
+        x = torch.relu(self.conv1(x))
+        x = torch.relu(self.conv2(x))
+        x = torch.relu(self.conv3(x))
+        x = x.view(-1, self.fc_input_dim)
+        x = torch.relu(self.fc1(x))
+        return self.fc2(x)
+
+
 class DeepQAgent(torch.nn.Module):
     def __init__(
         self,
@@ -107,21 +129,21 @@ class DeepQAgent(torch.nn.Module):
         batch_size=8,
         number_of_actions: int = 8,
         number_episodes: int = 10,
+        target_update: int = 1000,
         replay_memory_size: int = 10000,
         optimize_every_n_steps: int = 10,
     ) -> None:
         super(DeepQAgent, self).__init__()
         self.gamma = gamma
         self.number_of_actions = number_of_actions
-        self.model = model if model else self.create_q_model()
-        self.target_network = copy.deepcopy(self.model)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
+        self.model = None
         self.memory = ReplayMemory(10000)
         self.BATCH_SIZE = batch_size
         self.NUMBER_EPISODES = number_episodes
         self.REPLAY_MEMORY_SIZE = replay_memory_size
         self.OPTIMIZE_EVERY_N_STEPS = optimize_every_n_steps
         self.LEARNING_RATE = lr
+        self.TARGET_UPDATE = target_update
         self.config = {
             "gamma": self.gamma,
             "lr": self.LEARNING_RATE,
@@ -135,52 +157,37 @@ class DeepQAgent(torch.nn.Module):
         assert self.BATCH_SIZE <= self.OPTIMIZE_EVERY_N_STEPS
         self.criterion = nn.MSELoss()
         self.device = "cpu"
+
+    def create_q_model(self, action_space: int) -> None:
+        self.model = DeepQNetwork(1, action_space=action_space)
         self.model.to(self.device)
+        self.target_network = copy.deepcopy(self.model)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.LEARNING_RATE)
 
-    def create_q_model(self):
-        return nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(in_features=8 * 8, out_features=64),
-            nn.ReLU(),
-            nn.Linear(in_features=64, out_features=self.number_of_actions),
-            nn.Softmax(dim=1),
+    def forward(self, x):
+        return self.model(x)
+
+    def predict(self, state, env):
+        state_tensor = (
+            torch.tensor(state, dtype=torch.float32)
+            .unsqueeze(0)
+            .unsqueeze(0)
+            .to(self.device)
         )
+        with torch.no_grad():
+            action_probs = self.model(state_tensor)
 
-    def forward(self, x, env=None):
-        x = torch.tensor(x, dtype=torch.float).to(self.device).unsqueeze(0)
-        y = self.model(x)
-        # if available_moves is not None, we argmax on the available moves
-        if env:
-            available_moves = env.available_moves
-            dict_moves = env.all_possibles_moves_list
-            index_feasible_moves = [dict_moves[str(move)] for move in available_moves]
-            index_non_feasible_moves = [
-                i
-                for i in range(self.number_of_actions)
-                if i not in index_feasible_moves
-            ]
-            # set the non feasible indexes to zero in the output
-            y[:, index_non_feasible_moves] = 0
+        # Filter out illegal moves
+        legal_moves = env.available_moves
+        legal_move_indices = [env.move_str_to_index(str(move)) for move in legal_moves]
+        legal_action_probs = action_probs[0, legal_move_indices]
 
-        # return argmax of the available
-        return y
-
-    def predict(self, env):
-        state_tensor = torch.tensor(env.translate_board()).unsqueeze(0)
-        action_probs = self.model(state_tensor)
-        move_number = torch.argmax(action_probs, dim=1).item()
-        move = self.list_of_moves[move_number]
-        return move, move_number
+        move_index = legal_move_indices[torch.argmax(legal_action_probs).item()]
+        move = env.move_index_to_str(move_index)
+        return move, move_index
 
     def explore(self, env):
         return random.choice(env.available_moves)
-
-    def exploit(self, env):
-        state = env.translate_board()
-        action_probs = self.forward(state, env)
-        move_idx = torch.argmax(action_probs[0], dim=0).item()
-        move_str = env.move_index_to_str(move_idx)
-        return move_str, move_idx
 
     def optimize_model(self):
         if len(self.memory) < self.BATCH_SIZE:
@@ -190,112 +197,133 @@ class DeepQAgent(torch.nn.Module):
         batch = Transition(*zip(*transitions))
 
         non_final_mask = torch.tensor(
-            tuple(map(lambda s: s is not None, batch.next_state)), dtype=torch.bool
+            tuple(map(lambda s: s is not None, batch.next_state)),
+            device=self.device,
+            dtype=torch.bool,
         )
-        next_states = [s for s in batch.next_state if s is not None]
-        logger.info(
-            f"next_states: {len(next_states)} elements of shape {next_states[0].shape}"
-        )
-        non_final_next_states = (
-            torch.cat(next_states).view(-1, 8, 8).unsqueeze(1).to(self.device)
-        )
+        non_final_next_states = torch.cat(
+            [s for s in batch.next_state if s is not None]
+        ).to(self.device)
 
-        state_batch = torch.cat(batch.state).view(-1, 8, 8).unsqueeze(1).to(self.device)
-        action_batch = torch.tensor(batch.action).view(-1, 1).to(self.device)
-        reward_batch = torch.tensor(batch.reward).view(-1, 1).to(self.device)
+        state_batch = torch.cat(batch.state).to(self.device)
+        action_batch = torch.tensor(batch.action, device=self.device).unsqueeze(1)
+        reward_batch = torch.tensor(batch.reward, device=self.device)
+        player_batch = torch.tensor(batch.player, device=self.device)
 
-        state_action_values = self.model(state_batch).gather(1, action_batch)
+        state_batch = (
+            torch.cat(batch.state).to(self.device).unsqueeze(1)
+        )  # Adding channel dimension
+        model_output = self.model(state_batch)
+        state_action_values = model_output.gather(1, action_batch)
 
         next_state_values = torch.zeros(self.BATCH_SIZE, device=self.device)
-        next_state_values[non_final_mask] = (
-            self.target_network(non_final_next_states).max(1)[0].detach()
-        )
+        with torch.no_grad():
+            # swap dim 0 and dim 1 of non_final_next_states
+            non_final_next_states = non_final_next_states.unsqueeze(1)
+            next_state_values[non_final_mask] = self.target_network(
+                non_final_next_states
+            ).max(1)[0]
+
+        # Adjust rewards based on the player
+        adjusted_rewards = reward_batch * (2 * player_batch - 1)
         expected_state_action_values = (
             next_state_values * self.gamma
-        ) + reward_batch.squeeze()
+        ) + adjusted_rewards
 
         loss = self.criterion(
             state_action_values, expected_state_action_values.unsqueeze(1)
         )
-        logger.info(f"loss: {loss.item()}")
-        stored_loss_value = loss.item()
 
         self.optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_value_(self.model.parameters(), 100)
         self.optimizer.step()
-        return stored_loss
+
+        return loss.item()
 
     def update_target_network(self):
         self.target_network.load_state_dict(self.model.state_dict())
 
-    def training_step(self, batch, batch_idx):
-        return self.optimize_model()
-
-    def configure_optimizers(self):
-        return self.optimizer
-
-    def save_pickle_agent(self, folder_path: str):
+    def save_agent(self, folder_path: str):
         if not os.path.isdir(folder_path):
             os.makedirs(folder_path)
         torch.save(self.model.state_dict(), os.path.join(folder_path, "model.pth"))
+        torch.save(
+            self.target_network.state_dict(),
+            os.path.join(folder_path, "target_network.pth"),
+        )
         with open(os.path.join(folder_path, "deep_q_agent.pickle"), "wb") as f:
             pickle.dump(self, f)
 
+    def load_agent(self, folder_path: str):
+        self.model.load_state_dict(torch.load(os.path.join(folder_path, "model.pth")))
+        self.target_network.load_state_dict(
+            torch.load(os.path.join(folder_path, "target_network.pth"))
+        )
+        self.model.to(self.device)
+        self.target_network.to(self.device)
+
     def fit(self, env: gym.Env) -> None:
-        self.memory = ReplayMemory(self.REPLAY_MEMORY_SIZE)
         wandb.init(project="chess-rl", config=self.config)
-        metrics = {
-            "episode": [],
-            "average_reward_episode": [],
-            "average_episode_length": [],
-        }
+        epsilon_start = 1.0
+        epsilon_end = 0.1
+        epsilon_decay = 0.995
+        epsilon = epsilon_start
+        self.create_q_model(action_space=env.action_space)
+
         for episode_idx in track(
             range(self.NUMBER_EPISODES), description="Training Episode"
         ):
-            finished_game = False
-            self.board = env.reset()
-            episode_rewards = []
-            episode_length = 0
-            while not finished_game:
-                epsilon = random.uniform(0, 1)
-                if epsilon < self.gamma:
-                    move_str = self.explore(env)
-                    move_idx = env.move_str_to_index(move_str)
+            state = env.reset()
+            done = False
+            total_reward = 0
+            moves = 0
+
+            while not done:
+                player = moves % 2  # 0 for white, 1 for black
+
+                if random.random() < epsilon:
+                    move = self.explore(env)
+                    move_idx = env.move_str_to_index(str(move))
                 else:
-                    move_str, move_idx = self.exploit(env)
+                    move, move_idx = self.predict(state, env)
 
-                state = env.translate_board()
+                next_state, reward, done = env.step(move)
 
-                # do the action in the environment
-                next_state, reward, done = env.step(move_str)
+                self.memory.push(
+                    torch.tensor(state, dtype=torch.float32).unsqueeze(0),
+                    move_idx,
+                    reward,
+                    torch.tensor(next_state, dtype=torch.float32).unsqueeze(0)
+                    if not done
+                    else None,
+                    done,
+                    player,
+                )
 
-                # store the transition in the replay memory
-                self.memory.push(state, move_idx, reward, next_state, done)
+                state = next_state
+                total_reward += reward
+                moves += 1
 
-                # optimize the model
-                if episode_idx > 1 and episode_idx % self.OPTIMIZE_EVERY_N_STEPS == 0:
-                    loss = self.training_step(
-                        self.memory.sample(self.BATCH_SIZE), episode_idx
-                    )
+                if moves % self.OPTIMIZE_EVERY_N_STEPS == 0:
+                    loss = self.optimize_model()
                     wandb.log({"loss": loss})
-                    logger.info(f"loss: {loss}")
-                finished_game = done
-                episode_rewards.append(reward)
-                episode_length += 1
 
-            # Update metrics at the end of each episode
-            metrics["episode"].append(episode_idx)
-            metrics["average_reward_episode"].append(np.mean(episode_rewards))
-            metrics["average_episode_length"].append(episode_length)
+                if moves % self.TARGET_UPDATE == 0:
+                    self.update_target_network()
 
-            # Log metrics to wandb
+            epsilon = max(epsilon_end, epsilon * epsilon_decay)
+
             wandb.log(
                 {
                     "episode": episode_idx,
-                    "average_reward": np.mean(episode_rewards),
-                    "episode_length": episode_length,
+                    "total_reward": total_reward,
+                    "moves": moves,
+                    "epsilon": epsilon,
                 }
             )
 
-        # Finish the wandb run
+            if episode_idx % 100 == 0:
+                self.save_agent(f"checkpoints/episode_{episode_idx}")
+
         wandb.finish()

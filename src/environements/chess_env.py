@@ -53,6 +53,10 @@ class ChessEnv:
     def number_of_possible_moves(self):
         return len(self.all_possibles_moves_list)
 
+    @property
+    def action_space(self):
+        return len(list(self.all_possibles_moves_list.keys()))
+
     def reset(self):
         # Reset the board to the initial state
         self.board.reset()
@@ -131,7 +135,14 @@ class ChessEnv:
                 f.write("%s\n" % item)
 
         # create dictionary of all possible moves with unique index
-        self.board_all_moves = {move: i for i, move in enumerate(self.board_all_moves)}
+        self.board_all_moves = {
+            move: i for i, move in set(enumerate(self.board_all_moves))
+        }
+        # delete duplicates from self.
+        # reindex the dictionary
+        self.board_all_moves = {
+            move: i for i, move in set(enumerate(self.board_all_moves))
+        }
         return self.board_all_moves
 
     def _encode_piece(self, piece):
