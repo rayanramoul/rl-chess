@@ -1,3 +1,4 @@
+export PYTHONPATH=$PYTHONPATH:$(shell pwd)
 
 add_src_to_python_path:
 	export PYTHONPATH=$PYTHONPATH:$(shell pwd)

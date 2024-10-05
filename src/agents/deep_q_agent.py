@@ -10,6 +10,7 @@ from typing import List, override
 
 import numpy as np
 from loguru import logger
+from torch.optim.lr_scheduler import StepLR
 import gym
 import torch
 import torch.nn as nn
@@ -101,22 +102,27 @@ class ReplayMemory:
 class DeepQNetwork(nn.Module):
     def __init__(self, input_channels, action_space):
         super(DeepQNetwork, self).__init__()
-        self.conv1 = nn.Conv2d(input_channels, 32, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(input_channels, 64, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(128)
+        self.conv3 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
+        self.bn3 = nn.BatchNorm2d(256)
 
-        # Calculate the size of the flattened output from conv layers
-        self.fc_input_dim = 64 * 8 * 8
+        self.fc_input_dim = 256 * 8 * 8 + 1  # +1 for the turn information
 
-        self.fc1 = nn.Linear(self.fc_input_dim, 512)
-        self.fc2 = nn.Linear(512, action_space)
+        self.fc1 = nn.Linear(self.fc_input_dim, 1024)
+        self.dropout = nn.Dropout(0.5)
+        self.fc2 = nn.Linear(1024, action_space)
 
-    def forward(self, x):
-        x = torch.relu(self.conv1(x))
-        x = torch.relu(self.conv2(x))
-        x = torch.relu(self.conv3(x))
-        x = x.view(-1, self.fc_input_dim)
+    def forward(self, x, turn):
+        x = torch.relu(self.bn1(self.conv1(x)))
+        x = torch.relu(self.bn2(self.conv2(x)))
+        x = torch.relu(self.bn3(self.conv3(x)))
+        x = x.view(-1, 256 * 8 * 8)
+        x = torch.cat([x, turn.float().unsqueeze(1)], dim=1)
         x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
         return self.fc2(x)
 
 
@@ -129,9 +135,12 @@ class DeepQAgent(torch.nn.Module):
         batch_size=8,
         number_of_actions: int = 8,
         number_episodes: int = 10,
+        epsilon_decay: float = 0.995,
         target_update: int = 1000,
         replay_memory_size: int = 10000,
         optimize_every_n_steps: int = 10,
+        continue_from_checkpoint_path: str = "",
+        save_every_n_episodes: int = 100,
     ) -> None:
         super(DeepQAgent, self).__init__()
         self.gamma = gamma
@@ -144,6 +153,9 @@ class DeepQAgent(torch.nn.Module):
         self.OPTIMIZE_EVERY_N_STEPS = optimize_every_n_steps
         self.LEARNING_RATE = lr
         self.TARGET_UPDATE = target_update
+        self.EPSILON_DECAY = epsilon_decay
+        self.continue_from_checkpoint_path = continue_from_checkpoint_path
+        self.save_every_n_episodes = save_every_n_episodes
         self.config = {
             "gamma": self.gamma,
             "lr": self.LEARNING_RATE,
@@ -152,22 +164,30 @@ class DeepQAgent(torch.nn.Module):
             "number_episodes": self.NUMBER_EPISODES,
             "replay_memory_size": self.REPLAY_MEMORY_SIZE,
             "optimize_every_n_steps": self.OPTIMIZE_EVERY_N_STEPS,
+            "target_update": self.TARGET_UPDATE,
+            "epsilon_decay": self.EPSILON_DECAY,
+            "continue_from_checkpoint_path": self.continue_from_checkpoint_path,
+            "save_every_n_episodes": self.save_every_n_episodes,
         }
         assert self.BATCH_SIZE <= self.REPLAY_MEMORY_SIZE
         assert self.BATCH_SIZE <= self.OPTIMIZE_EVERY_N_STEPS
-        self.criterion = nn.MSELoss()
-        self.device = "cpu"
+        # self.criterion = nn.MSELoss()
+        self.criterion = nn.HuberLoss()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def create_q_model(self, action_space: int) -> None:
         self.model = DeepQNetwork(1, action_space=action_space)
         self.model.to(self.device)
         self.target_network = copy.deepcopy(self.model)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.LEARNING_RATE)
+        self.scheduler = StepLR(self.optimizer, step_size=1000, gamma=0.1)
 
     def forward(self, x):
         return self.model(x)
 
-    def predict(self, state, env):
+    def predict(self, state, env, turn):
+        if isinstance(turn, int):
+            turn = torch.tensor([turn], dtype=torch.float32).to(self.device)
         state_tensor = (
             torch.tensor(state, dtype=torch.float32)
             .unsqueeze(0)
@@ -175,7 +195,7 @@ class DeepQAgent(torch.nn.Module):
             .to(self.device)
         )
         with torch.no_grad():
-            action_probs = self.model(state_tensor)
+            action_probs = self.model(state_tensor, turn=turn)
 
         # Filter out illegal moves
         legal_moves = env.available_moves
@@ -213,7 +233,7 @@ class DeepQAgent(torch.nn.Module):
         state_batch = (
             torch.cat(batch.state).to(self.device).unsqueeze(1)
         )  # Adding channel dimension
-        model_output = self.model(state_batch)
+        model_output = self.model(state_batch, turn=player_batch)
         state_action_values = model_output.gather(1, action_batch)
 
         next_state_values = torch.zeros(self.BATCH_SIZE, device=self.device)
@@ -221,7 +241,7 @@ class DeepQAgent(torch.nn.Module):
             # swap dim 0 and dim 1 of non_final_next_states
             non_final_next_states = non_final_next_states.unsqueeze(1)
             next_state_values[non_final_mask] = self.target_network(
-                non_final_next_states
+                non_final_next_states, player_batch[non_final_mask]
             ).max(1)[0]
 
         # Adjust rewards based on the player
@@ -230,13 +250,16 @@ class DeepQAgent(torch.nn.Module):
             next_state_values * self.gamma
         ) + adjusted_rewards
 
-        loss = self.criterion(
-            state_action_values, expected_state_action_values.unsqueeze(1)
+        loss = (
+            self.criterion(
+                state_action_values, expected_state_action_values.unsqueeze(1)
+            )
+            / self.BATCH_SIZE
         )
 
         self.optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_value_(self.model.parameters(), 100)
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
         self.optimizer.step()
 
         return loss.item()
@@ -267,9 +290,11 @@ class DeepQAgent(torch.nn.Module):
         wandb.init(project="chess-rl", config=self.config)
         epsilon_start = 1.0
         epsilon_end = 0.1
-        epsilon_decay = 0.995
         epsilon = epsilon_start
-        self.create_q_model(action_space=env.action_space)
+        if not self.continue_from_checkpoint_path:
+            self.create_q_model(action_space=env.action_space)
+        else:
+            self.load_agent(self.continue_from_checkpoin_path)
 
         for episode_idx in track(
             range(self.NUMBER_EPISODES), description="Training Episode"
@@ -286,7 +311,7 @@ class DeepQAgent(torch.nn.Module):
                     move = self.explore(env)
                     move_idx = env.move_str_to_index(str(move))
                 else:
-                    move, move_idx = self.predict(state, env)
+                    move, move_idx = self.predict(state, env, turn=player)
 
                 next_state, reward, done = env.step(move)
 
@@ -312,7 +337,8 @@ class DeepQAgent(torch.nn.Module):
                 if moves % self.TARGET_UPDATE == 0:
                     self.update_target_network()
 
-            epsilon = max(epsilon_end, epsilon * epsilon_decay)
+            epsilon = max(epsilon_end, epsilon * self.EPSILON_DECAY)
+            self.scheduler.step()
 
             wandb.log(
                 {
@@ -320,10 +346,12 @@ class DeepQAgent(torch.nn.Module):
                     "total_reward": total_reward,
                     "moves": moves,
                     "epsilon": epsilon,
+                    "scheduler_lr": self.scheduler.get_last_lr()[0],
                 }
             )
 
-            if episode_idx % 100 == 0:
-                self.save_agent(f"checkpoints/episode_{episode_idx}")
+            if episode_idx % self.save_every_n_episodes == 0:
+                self.save_agent(f"checkpoints/episode_{episode_idx}.ckpt")
+                self.save_agent(f"checkpoints/last.ckpt")
 
         wandb.finish()
