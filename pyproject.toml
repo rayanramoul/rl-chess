@@ -3,7 +3,7 @@ name = "rl-chess"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
   "chess>=1.10.0",
   "dm-tree>=0.1.8",
@@ -17,7 +17,6 @@ dependencies = [
   "pillow>=11.1.0",
   "pygame>=2.6.1",
   "python-dotenv>=1.0.1",
-  "pytorch-lightning>=2.4.0",
   "ray[data,serve,train,tune]>=2.37.0",
   "raylib[rllib]>=5.5.0.2",
   "rich>=13.8.1",
@@ -30,3 +29,12 @@ dependencies = [
 [build-system]
 requires = ["setuptools>=42"]
 build-backend = "setuptools.build_meta"
+
+[[tool.uv.index]]
+name = "pytorch-cuda128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torchvision = [{ index = "pytorch-cuda128" }]
+torch = [{ index = "pytorch-cuda128" }]
