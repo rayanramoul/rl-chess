@@ -40,7 +40,7 @@ value_dict = {
 
 
 class ChessEnv(gym.Env):
-    """Chess Environement based on Gym specifications."""
+    """Chess Environment based on Gym specifications."""
 
     def __init__(self, env_name="ChessEnv", render_mode: str | None = None):
         super(ChessEnv, self).__init__()
@@ -49,108 +49,223 @@ class ChessEnv(gym.Env):
         # Create a Chess board object
         self.board = chess.Board()
 
-        self.all_possibles_moves_list = self.all_possible_moves()
+        # Create all possible moves mapping
+        self.all_possibles_moves_list = self._create_moves_mapping()
+        self.inversed_all_possibles_moves_list = {
+            v: k for k, v in self.all_possibles_moves_list.items()
+        }
+
+        # Define action space as discrete with all possible chess moves
+        self._action_space = spaces.Discrete(len(self.all_possibles_moves_list))
+
         # Observation space: 8x8 board with 12 channels (6 piece types x 2 colors)
-        # Each square contains a 12-dimensional one-hot vector
         self.observation_space = spaces.Box(
             low=0, high=1, shape=(8, 8, 12), dtype=np.float32
         )
 
     @property
+    def action_space(self):
+        """Return the action space for RLlib compatibility"""
+        return self._action_space
+
+    @property
     def number_of_possible_moves(self):
         return len(self.all_possibles_moves_list)
 
-    @property
-    def action_space(self):
-        return len(list(self.all_possibles_moves_list.keys()))
-
-    def reset(self):
-        # Reset the board to the initial state
-        self.board.reset()
-
-        return self.translate_board()
-
-    @property
-    def state(self):
-        return self.translate_board()
-
-    def move_str_to_index(self, move):
-        return self.all_possibles_moves_list[str(move)]
-
-    def move_index_to_str(self, move):
-        if isinstance(move, tuple):
-            move = move[0]
-        return self.inversed_all_possibles_moves_list[move]
-
-    def step(self, action):
-        if not isinstance(action, chess.Move):
-            action = chess.Move.from_uci(action)
-        self.board.push(action)
-        next_state = self.translate_board()
-        reward = self._get_reward()
-        done = (
-            self.board.is_game_over()
-        )  # self.board.outcome(claim_draw=True) is not None
-        return next_state, reward, done
-
-    def render(self, mode="human"):
-        pass
-
-    def _get_reward(self):
-        # Simple reward function example
-        # TODO: implment a real reward based on the winning side
-        if self.board.is_checkmate():
-            return 1  # Win
-        elif self.board.is_stalemate() or self.board.is_insufficient_material():
-            return -1  # Draw
-        else:
-            return -1  # No reward
-
-    def _action_to_move(self, action):
-        # Convert action index to a move
-        moves = list(self.board.legal_moves)
-        move = moves[action]
-        return move
-
-    @property
-    def available_moves(self):
-        available_moves = list(self.board.legal_moves)
-        return available_moves
-
-    def all_possible_moves(self):
-        self.board_all_moves = []
+    def _create_moves_mapping(self):
+        """Create mapping of all possible chess moves"""
+        moves = []
         letters = ["a", "b", "c", "d", "e", "f", "g", "h"]
+
+        # Regular moves
         for x in letters:
             for y in range(1, 9):
                 for x1 in letters:
                     for y1 in range(1, 9):
                         if x == x1 and y == y1:
                             continue
-                        self.board_all_moves.append(f"{x}{y}{x1}{y1}")
-        # add the promotion moves
+                        moves.append(f"{x}{y}{x1}{y1}")
+
+        # Promotion moves
         for x in letters:
             for x2 in letters:
-                for y in [8, 1]:
-                    for p in ["q", "r", "b", "n", "q"]:
-                        diff_y = 1 if y == 1 else -1
-                        self.board_all_moves.append(f"{x}{y}{x2}{y+diff_y}{p}")
-                        self.board_all_moves.append(f"{x}{y+diff_y}{x2}{y}{p}")
+                for y in [7, 2]:  # Second-to-last rank for both colors
+                    for p in ["q", "r", "b", "n"]:
+                        diff_y = 1 if y == 2 else -1
+                        moves.append(f"{x}{y}{x2}{y + diff_y}{p}")
 
-        # Save the legal moves in a txt file
-        with open("legal_moves.txt", "w") as f:
-            for item in self.board_all_moves:
-                f.write("%s\n" % item)
+        return {move: idx for idx, move in enumerate(moves)}
 
-        # create dictionary of all possible moves with unique index
-        self.board_all_moves = {
-            move: i for i, move in set(enumerate(self.board_all_moves))
+    def reset(self, seed=None, options=None):
+        """Reset the board to the initial state"""
+        if seed is not None:
+            np.random.seed(seed)
+
+        # Reset the board to the initial state
+        self.board.reset()
+        observation = self._get_observation()
+
+        info = {
+            "legal_moves": list(self.board.legal_moves),
+            "is_check": self.board.is_check(),
+            "turn": "white" if self.board.turn else "black",
         }
-        # delete duplicates from self.
-        # reindex the dictionary
-        self.board_all_moves = {
-            move: i for i, move in set(enumerate(self.board_all_moves))
+
+        return observation, info
+
+    def _get_observation(self):
+        """Convert current board state to observation"""
+        observation = np.zeros((8, 8, 12), dtype=np.float32)
+
+        piece_mapping = {
+            "p": 0,
+            "n": 1,
+            "b": 2,
+            "r": 3,
+            "q": 4,
+            "k": 5,
+            "P": 6,
+            "N": 7,
+            "B": 8,
+            "R": 9,
+            "Q": 10,
+            "K": 11,
         }
-        return self.board_all_moves
+
+        for square in chess.SQUARES:
+            piece = self.board.piece_at(square)
+            if piece is not None:
+                rank, file = chess.square_rank(square), chess.square_file(square)
+                piece_idx = piece_mapping[piece.symbol()]
+                observation[rank, file, piece_idx] = 1
+
+        return observation
+
+    @property
+    def state(self):
+        return self._get_observation()
+
+    def move_str_to_index(self, move):
+        move_str = str(move)
+        if move_str in self.all_possibles_moves_list:
+            return self.all_possibles_moves_list[move_str]
+        else:
+            # Handle case where move is not in our predefined list
+            # This shouldn't happen with legal moves, but just in case
+            return 0
+
+    def move_index_to_str(self, move):
+        if isinstance(move, tuple):
+            move = move[0]
+        return self.inversed_all_possibles_moves_list.get(move, "a1a1")
+
+    def step(self, action):
+        """Execute action and return new state, reward, done, truncated, and info"""
+
+        # Convert action index to move string
+        if isinstance(action, int):
+            move_str = self.move_index_to_str(action)
+        else:
+            move_str = str(action)
+
+        try:
+            move = chess.Move.from_uci(move_str)
+
+            # Check if move is legal
+            if move not in self.board.legal_moves:
+                # Return negative reward for illegal move and end episode
+                return (
+                    self._get_observation(),
+                    -10.0,
+                    True,
+                    False,
+                    {"illegal_move": True, "move": move_str},
+                )
+
+            # Make the move
+            self.board.push(move)
+
+        except (ValueError, chess.InvalidMoveError):
+            # Invalid move format
+            return (
+                self._get_observation(),
+                -10.0,
+                True,
+                False,
+                {"invalid_move": True, "move": move_str},
+            )
+
+        # Calculate reward
+        reward = self._calculate_reward()
+
+        # Check if game is over
+        done = self.board.is_game_over()
+
+        # Get observation and info
+        observation = self._get_observation()
+        info = {
+            "legal_moves": list(self.board.legal_moves),
+            "is_check": self.board.is_check(),
+            "turn": "white" if self.board.turn else "black",
+            "move": move_str,
+        }
+
+        return observation, reward, done, False, info
+
+    def _calculate_reward(self) -> float:
+        """Calculate reward based on game state"""
+        if self.board.is_checkmate():
+            # Reward based on whose turn it is (the losing player)
+            return 100.0 if not self.board.turn else -100.0
+
+        if self.board.is_stalemate() or self.board.is_insufficient_material():
+            return 0.0
+
+        # Small reward for check
+        if self.board.is_check():
+            return 1.0 if self.board.turn else -1.0
+
+        # Material advantage calculation
+        piece_values = {
+            chess.PAWN: 1,
+            chess.KNIGHT: 3,
+            chess.BISHOP: 3,
+            chess.ROOK: 5,
+            chess.QUEEN: 9,
+        }
+
+        white_material = 0
+        black_material = 0
+
+        for square in chess.SQUARES:
+            piece = self.board.piece_at(square)
+            if piece is not None and piece.piece_type != chess.KING:
+                if piece.color:  # White
+                    white_material += piece_values[piece.piece_type]
+                else:  # Black
+                    black_material += piece_values[piece.piece_type]
+
+        # Return material advantage as a small reward
+        material_diff = (white_material - black_material) * 0.01
+        return material_diff if self.board.turn else -material_diff
+
+    def render(self, mode="human"):
+        """Render the current board state"""
+        if mode == "human":
+            print(self.board)
+
+    @property
+    def available_moves(self):
+        available_moves = list(self.board.legal_moves)
+        return available_moves
+
+    def _action_to_move(self, action):
+        # Convert action index to a move
+        moves = list(self.board.legal_moves)
+        if action < len(moves):
+            return moves[action]
+        else:
+            return moves[0] if moves else None
 
     def _encode_piece(self, piece):
         # Encode the piece type using a one-hot encoding
@@ -234,7 +349,7 @@ class ChessGymEnv(gym.Env):
                     for p in ["q", "r", "b", "n"]:
                         diff_y = 1 if y == 2 else -1
 
-                        moves.append(f"{x}{y}{x2}{y+diff_y}{p}")
+                        moves.append(f"{x}{y}{x2}{y + diff_y}{p}")
 
         return {move: idx for idx, move in enumerate(moves)}
 

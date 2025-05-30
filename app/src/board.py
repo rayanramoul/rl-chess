@@ -1,6 +1,7 @@
 # /* Board.py
 import random
 import chess
+import numpy as np
 from src.square import Square
 from src.pieces.rook import Rook
 from src.pieces.bishop import Bishop
@@ -103,31 +104,118 @@ class Board:
                             (x, y), "white" if piece[0] == "w" else "black", self
                         )
 
+    def _get_board_state(self):
+        """Convert current board state to the format expected by DeepQAgent"""
+        observation = np.zeros((8, 8, 12), dtype=np.float32)
+
+        piece_mapping = {
+            "p": 0,
+            "n": 1,
+            "b": 2,
+            "r": 3,
+            "q": 4,
+            "k": 5,
+            "P": 6,
+            "N": 7,
+            "B": 8,
+            "R": 9,
+            "Q": 10,
+            "K": 11,
+        }
+
+        for square in chess.SQUARES:
+            piece = self.board.piece_at(square)
+            if piece is not None:
+                rank, file = chess.square_rank(square), chess.square_file(square)
+                piece_idx = piece_mapping[piece.symbol()]
+                observation[rank, file, piece_idx] = 1
+
+        return observation
+
+    def _create_simple_env_wrapper(self):
+        """Create a simple environment wrapper for the agent"""
+
+        class SimpleEnvWrapper:
+            def __init__(self, board):
+                self.board = board
+                # Create all possible moves mapping (same as ChessEnv)
+                self.all_possibles_moves_list = self._create_moves_mapping()
+                self.inversed_all_possibles_moves_list = {
+                    v: k for k, v in self.all_possibles_moves_list.items()
+                }
+
+            def _create_moves_mapping(self):
+                """Create mapping of all possible chess moves (same as ChessEnv)"""
+                moves = []
+                letters = ["a", "b", "c", "d", "e", "f", "g", "h"]
+
+                # Regular moves
+                for x in letters:
+                    for y in range(1, 9):
+                        for x1 in letters:
+                            for y1 in range(1, 9):
+                                if x == x1 and y == y1:
+                                    continue
+                                moves.append(f"{x}{y}{x1}{y1}")
+
+                # Promotion moves
+                for x in letters:
+                    for x2 in letters:
+                        for y in [7, 2]:  # Second-to-last rank for both colors
+                            for p in ["q", "r", "b", "n"]:
+                                diff_y = 1 if y == 2 else -1
+                                moves.append(f"{x}{y}{x2}{y + diff_y}{p}")
+
+                return {move: idx for idx, move in enumerate(moves)}
+
+            @property
+            def available_moves(self):
+                return list(self.board.legal_moves)
+
+            def move_str_to_index(self, move_str):
+                return self.all_possibles_moves_list.get(move_str, 0)
+
+            def move_index_to_str(self, move_index):
+                return self.inversed_all_possibles_moves_list.get(move_index, "a1a1")
+
+        return SimpleEnvWrapper(self.board)
+
     def handle_click(self, mx, my):
         x = mx // self.tile_width
         y = my // self.tile_height
         clicked_square = self.get_square_from_pos((x, y))
         clicked_square_coord = clicked_square.get_coord()
-        if self.selected_piece:
-            selected_piece_coord = self.selected_piece.get_coord()
 
         if self.selected_piece is None:
             if clicked_square.occupying_piece is not None:
                 if clicked_square.occupying_piece.color == self.turn:
                     self.selected_piece = clicked_square.occupying_piece
+        else:
+            selected_piece_coord = self.selected_piece.get_coord()
 
-        elif self.selected_piece.move(self, clicked_square):
-            self.turn = "white" if self.turn == "black" else "black"
-            move = chess.Move.from_uci(f"{selected_piece_coord}{clicked_square_coord}")
-            self.board.push(move)
+            # If clicking on the same square, deselect
+            if selected_piece_coord == clicked_square_coord:
+                self.selected_piece = None
+                return
 
-        elif clicked_square.occupying_piece is not None:
-            if clicked_square.occupying_piece.color == self.turn:
-                self.selected_piece = clicked_square.occupying_piece
+            # Try to move the selected piece
+            if self.selected_piece.move(self, clicked_square):
+                self.turn = "white" if self.turn == "black" else "black"
                 move = chess.Move.from_uci(
                     f"{selected_piece_coord}{clicked_square_coord}"
                 )
                 self.board.push(move)
+                self.selected_piece = None
+            # If clicking on another piece of the same color, select it instead
+            elif clicked_square.occupying_piece is not None:
+                if clicked_square.occupying_piece.color == self.turn:
+                    self.selected_piece = clicked_square.occupying_piece
+                else:
+                    # Trying to capture - this should be handled by the piece.move() method
+                    self.selected_piece = None
+            else:
+                # Clicked on empty square but move was invalid
+                self.selected_piece = None
 
     def agent_move(self):
         # get a random move :
@@ -141,7 +229,12 @@ class Board:
             if self.agent == "random":
                 move = random.choice(white_moves)
             else:
-                move = self.agent.predict(self.board)
+                # Get board state and environment for DeepQAgent
+                state = self._get_board_state()
+                env = self._create_simple_env_wrapper()
+                turn = 0  # 0 for white, 1 for black
+                move_str, _ = self.agent.predict(state, env, turn)
+                move = chess.Move.from_uci(move_str)
         else:
             black_moves = [
                 move
@@ -152,7 +245,13 @@ class Board:
             if self.agent == "random":
                 move = random.choice(black_moves)
             else:
-                move = self.agent.predict(self.board)
+                # Get board state and environment for DeepQAgent
+                state = self._get_board_state()
+                env = self._create_simple_env_wrapper()
+                turn = 1  # 0 for white, 1 for black
+                move_str, _ = self.agent.predict(state, env, turn)
+                move = chess.Move.from_uci(move_str)
+
         self.board.push(move)
         self.turn = "white" if self.turn == "black" else "black"
         self.selected_piece = None
@@ -216,11 +315,14 @@ class Board:
 
     def is_in_checkmate(self, color):
         output = False
+        king = None
         for piece in [i.occupying_piece for i in self.squares]:
             if piece != None:
                 if piece.notation == "K" and piece.color == color:
                     king = piece
-        if king.get_valid_moves(self) == []:
+                    break
+
+        if king is not None and king.get_valid_moves(self) == []:
             if self.is_in_check(color):
                 output = True
         return output

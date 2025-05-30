@@ -1,5 +1,8 @@
 import pygame
 import pickle
+from rich.console import Console
+from rich.table import Table
+from rich import print as rprint
 
 from src.board import Board
 
@@ -7,6 +10,30 @@ from src.board import Board
 # Add command line argument to read an agent pickle file from
 # the command line
 import argparse
+
+console = Console()
+
+
+def print_game_config(agent, agent_color):
+    """Print game configuration"""
+    rprint("[bold green]Starting Chess Game[/bold green]")
+
+    game_table = Table(title="Game Configuration")
+    game_table.add_column("Setting", style="cyan")
+    game_table.add_column("Value", style="magenta")
+
+    game_table.add_row("Player Color", "White" if agent_color == "black" else "Black")
+    game_table.add_row("Agent Color", agent_color.title())
+    game_table.add_row(
+        "Agent Type", "Random" if agent == "random" else "Deep Q-Network"
+    )
+
+    console.print(game_table)
+
+    # If it's a trained agent, print its configuration
+    if agent != "random" and hasattr(agent, "print_config"):
+        agent.print_config("Agent Configuration")
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -26,6 +53,8 @@ agent = "random"
 if args.agent != "random":
     agent = pickle.load(open(args.agent, "rb"))
 
+# Print game configuration
+print_game_config(agent, args.agent_color)
 
 pygame.init()
 pygame.display.set_caption("Arcane Chess")
