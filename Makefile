@@ -24,7 +24,7 @@ install:
 # Train the chess agent from scratch
 train:
 	@echo "Starting training from scratch..."
-	uv run src/rl_chess/train.py
+	uv run --no-sync src/rl_chess/train.py
 
 # Resume training from latest checkpoint
 train-resume:
@@ -41,7 +41,7 @@ play-white:
 		echo "No trained model found. Please run 'make train' first."; \
 		exit 1; \
 	fi
-	uv run app/app.py --agent checkpoints/last.ckpt/deep_q_agent.pickle --agent_color black
+	uv run --no-sync app/app.py --agent checkpoints/last.ckpt/deep_q_agent.pickle --agent_color black
 
 # Play as black against the agent
 play-black:
@@ -50,7 +50,7 @@ play-black:
 		echo "No trained model found. Please run 'make train' first."; \
 		exit 1; \
 	fi
-	uv run app/app.py --agent checkpoints/last.ckpt/deep_q_agent.pickle --agent_color white
+	uv run --no-sync app/app.py --agent checkpoints/last.ckpt/deep_q_agent.pickle --agent_color white
 
 # Play against a specific checkpoint
 play-checkpoint:
@@ -60,21 +60,21 @@ play-checkpoint:
 		exit 1; \
 	fi; \
 	echo "Starting game against episode $$episode checkpoint..."; \
-	uv run app/app.py --agent checkpoints/episode_$$episode.ckpt/deep_q_agent.pickle --agent_color black
+	uv run --no-sync app/app.py --agent checkpoints/episode_$$episode.ckpt/deep_q_agent.pickle --agent_color black
 
 # Run tests
 test:
-	uv run pytest tests/ -v
+	uv run --no-sync pytest tests/ -v
 
 # Run linting
 lint:
-	uv run ruff check src/ app/
-	uv run mypy src/ app/
+	uv run --no-sync ruff check src/ app/
+	uv run --no-sync mypy src/ app/
 
 # Format code
 format:
-	uv run ruff format src/ app/
-	uv run ruff check --fix src/ app/
+	uv run --no-sync ruff format src/ app/
+	uv run --no-sync ruff check --fix src/ app/
 
 # Clean up generated files
 clean:
@@ -128,7 +128,7 @@ setup: install
 # Development commands
 dev-train:
 	@echo "Starting development training (shorter episodes)..."
-	uv run src/rl_chess/train.py agent.number_episodes=100 agent.save_every_n_episodes=10
+	uv run --no-sync src/rl_chess/train.py agent.number_episodes=100 agent.save_every_n_episodes=10
 
 # Benchmark the agent
 benchmark:

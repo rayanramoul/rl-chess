@@ -29,12 +29,3 @@ dependencies = [
 [build-system]
 requires = ["setuptools>=42"]
 build-backend = "setuptools.build_meta"
-
-[[tool.uv.index]]
-name = "pytorch-cuda128"
-url = "https://download.pytorch.org/whl/cu128"
-explicit = true
-
-[tool.uv.sources]
-torchvision = [{ index = "pytorch-cuda128" }]
-torch = [{ index = "pytorch-cuda128" }]
