@@ -1,0 +1,12 @@
+defaults:
+  - _self_
+  - agent: default
+  - env: default
+
+# Training method: "dqn", "ppo", or "dqn_rllib"
+training_method: "dqn"
+
+# Ray/RLlib specific settings
+num_workers: 2
+rollout_fragment_length: 200
+evaluation_interval: 10

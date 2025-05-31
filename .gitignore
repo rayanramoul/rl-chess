@@ -1,0 +1,15 @@
+*.DS_Store*
+*pycache*
+*.pyc
+*.pkl
+*.pickle
+*.ipynb_checkpoints*
+*saves*
+*egg*
+*.venv*
+*runs*
+*hydra_logs*
+*outputs*
+*wandb*
+*checkpoints*
+run/*

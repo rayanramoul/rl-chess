@@ -41,6 +41,16 @@ python3.6 learning/train.py --number_of_games 100000 --winner_reward 1 --loser_m
 Each of those ones are explained in the Approach section of this README.
 
 
+## TODO
+- [X] Rework the project architecture to create : training, frontend, gym-env, your-agents, pro-players data, etc.
+- [] Implement on interface the possibility to choose pawn promotion and to do castling.
+- [] Wrap all the chess logic  in a gym environement
+- [] Create a backend api (FastAPI) to interact with to create a game, choose action, etc.
+- [] Create a frontend api to send to the different game states and  movements.
+- [] Rework the frontend with better visuals.
+
+
+
 ## Approach
 ### Chess Game Representation :
  For the purpose of training, we need to represent 4 main aspects :
@@ -48,7 +58,7 @@ Each of those ones are explained in the Approach section of this README.
  * Reward(R)
  * Action(A)
  * Quality(Q(Si, Ai))
-### State : 
+### State :
 The choosen approach was to represent the current state as a numpy array of 64,  with each index of matrix representing the equivalent in the board.
 For example : the case B2 in the board would be state[9]
 In addition of that, to prepare the policy, we need to numerize the board pieces, for that we followed the classical chess piece value (which is relative to the player side ) :
@@ -92,7 +102,7 @@ When the training begins, all Q values are initialized with zeros, the first mov
 ```
 
 ### Deep-Q-Network :
-Chess is a complex game, and both the input and the target change constantly during the process and make training unstable. That's why we need to build a Deep Neural Network that would associate each (state_i,action_i) to a corresponding Q value. So we took a deep neural net of 4 Dense Layers, with an input of (65,) shape : 64 for the actual state, and the last index for a chosen move. When the agent randomly chose to take a Q-Dependant move : 
+Chess is a complex game, and both the input and the target change constantly during the process and make training unstable. That's why we need to build a Deep Neural Network that would associate each (state_i,action_i) to a corresponding Q value. So we took a deep neural net of 4 Dense Layers, with an input of (65,) shape : 64 for the actual state, and the last index for a chosen move. When the agent randomly chose to take a Q-Dependant move :
 1. The modal predict the Q-value of each possible moves from this state.
 2. Take the move maximizing this value
 3. At the end of the game the modal train with a new batch :
@@ -130,4 +140,3 @@ Distributed under the MIT license. See ``LICENSE`` for more information.
 3. Commit your changes (`git commit -am 'Add some fooBar'`)
 4. Push to the branch (`git push origin feature/fooBar`)
 5. Create a new Pull Request
-
