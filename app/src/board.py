@@ -313,19 +313,66 @@ class Board:
             new_square.occupying_piece = new_square_old_piece
         return output
 
-    def is_in_checkmate(self, color):
-        output = False
-        king = None
-        for piece in [i.occupying_piece for i in self.squares]:
-            if piece != None:
-                if piece.notation == "K" and piece.color == color:
-                    king = piece
-                    break
+    def get_all_valid_moves_for_color(self, color):
+        """Get all valid moves for a given color that don't leave the king in check"""
+        valid_moves = []
+        pieces = [
+            square.occupying_piece for square in self.squares 
+            if square.occupying_piece is not None and square.occupying_piece.color == color
+        ]
+        
+        for piece in pieces:
+            valid_moves.extend(piece.get_valid_moves(self))
+        
+        return valid_moves
 
-        if king is not None and king.get_valid_moves(self) == []:
-            if self.is_in_check(color):
-                output = True
-        return output
+    def is_in_checkmate(self, color):
+        """
+        Proper checkmate detection: 
+        - King must be in check
+        - No legal moves available for any piece of that color that would get the king out of check
+        """
+        # First check if the king is in check
+        if not self.is_in_check(color):
+            return False
+        
+        # If in check, see if there are any valid moves that would get out of check
+        valid_moves = self.get_all_valid_moves_for_color(color)
+        
+        # If no valid moves exist while in check, it's checkmate
+        return len(valid_moves) == 0
+
+    def is_in_stalemate(self, color):
+        """
+        Stalemate occurs when:
+        - King is NOT in check
+        - No legal moves available for any piece of that color
+        """
+        # King must NOT be in check for stalemate
+        if self.is_in_check(color):
+            return False
+        
+        # If not in check, see if there are any valid moves
+        valid_moves = self.get_all_valid_moves_for_color(color)
+        
+        # If no valid moves exist while not in check, it's stalemate
+        return len(valid_moves) == 0
+
+    def is_game_over(self):
+        """Check if the game is over due to checkmate or stalemate"""
+        current_color = self.turn
+        return self.is_in_checkmate(current_color) or self.is_in_stalemate(current_color)
+
+    def get_game_result(self):
+        """Get the result of the game"""
+        if self.is_in_checkmate("white"):
+            return "Black wins by checkmate!"
+        elif self.is_in_checkmate("black"):
+            return "White wins by checkmate!"
+        elif self.is_in_stalemate("white") or self.is_in_stalemate("black"):
+            return "Draw by stalemate!"
+        else:
+            return "Game in progress"
 
     def draw(self, display):
         if self.selected_piece is not None:

@@ -215,14 +215,16 @@ class ChessEnv(gym.Env):
     def _calculate_reward(self) -> float:
         """Calculate reward based on game state"""
         if self.board.is_checkmate():
-            # Reward based on whose turn it is (the losing player)
-            return 100.0 if not self.board.turn else -100.0
+            # The current player (whose turn it is) is in checkmate and loses
+            # So we return negative reward for current player, positive for opponent
+            return -100.0 if self.board.turn else 100.0
 
         if self.board.is_stalemate() or self.board.is_insufficient_material():
             return 0.0
 
-        # Small reward for check
+        # Small reward for putting opponent in check
         if self.board.is_check():
+            # Current player's opponent is in check, so current player gets positive reward
             return 1.0 if self.board.turn else -1.0
 
         # Material advantage calculation
@@ -440,10 +442,15 @@ class ChessGymEnv(gym.Env):
     def _calculate_reward(self) -> float:
         """Calculate reward based on game state"""
         if self.board.is_checkmate():
-            return 100.0 if self.board.turn else -100.0
+            # The current player (whose turn it is) is in checkmate and loses
+            return -100.0 if self.board.turn else 100.0
 
         if self.board.is_stalemate() or self.board.is_insufficient_material():
             return 0.0
+
+        # Small reward for putting opponent in check
+        if self.board.is_check():
+            return 1.0 if self.board.turn else -1.0
 
         # Material advantage calculation
         piece_values = {
@@ -465,8 +472,9 @@ class ChessGymEnv(gym.Env):
                 else:  # Black
                     black_material += piece_values[piece.piece_type]
 
-        # Return material advantage as a small reward
-        return (white_material - black_material) * 0.1
+        # Return material advantage as a small reward (from white's perspective)
+        material_diff = (white_material - black_material) * 0.1
+        return material_diff if self.board.turn else -material_diff
 
     def render(self):
         """Render the current board state"""

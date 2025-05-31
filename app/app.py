@@ -72,24 +72,39 @@ def draw(display):
 
 if __name__ == "__main__":
     running = True
+    game_over = False
+    
     while running:
         mx, my = pygame.mouse.get_pos()
         for event in pygame.event.get():
             # Quit the game if the user presses the close button
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                # If the mouse is clicked
+            elif event.type == pygame.MOUSEBUTTONDOWN and not game_over:
+                # If the mouse is clicked and game is not over
                 if event.button == 1:
                     board.handle_click(mx, my)
-        if board.turn == args.agent_color:
+        
+        # Agent move (only if game is not over and it's agent's turn)
+        if board.turn == args.agent_color and not game_over:
             board.agent_move()
-        if board.is_in_checkmate("black"):  # If black is in checkmate
-            print("White wins!")
-            running = False
-        elif board.is_in_checkmate("white"):  # If white is in checkmate
-            print("Black wins!")
-            running = False
+        
+        # Check for game over conditions
+        if not game_over:
+            if board.is_game_over():
+                game_result = board.get_game_result()
+                print(game_result)
+                
+                # Display game result
+                rprint(f"[bold red]{game_result}[/bold red]")
+                
+                # Show additional game state information
+                if board.is_in_check("white"):
+                    rprint("[yellow]White is in check![/yellow]")
+                elif board.is_in_check("black"):
+                    rprint("[yellow]Black is in check![/yellow]")
+                
+                game_over = True
 
         # Draw the board
         draw(screen)
